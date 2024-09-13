@@ -10,7 +10,8 @@ import {
   ParseError,
   RequiredUniqueError,
   MissingConfigError,
-  ValidationError
+  ValidationError,
+  ValidationErrorObject
 } from './errors'
 import { book_schema, BookConfig } from './schema'
 
@@ -58,7 +59,7 @@ export async function validate_repo(
 
     validate(config)
     validate.errors?.forEach(error => {
-      errors.push(new ValidationError(file, error))
+      errors.push(new ValidationError(file, error as ValidationErrorObject))
       was_error = true
     })
 

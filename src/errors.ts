@@ -27,29 +27,45 @@ export class ParseError extends BaseConfigError {
       return `${error.linePos[0].line}:${error.linePos[0].col}`
     }
 
-    /* istanbul ignore next */
     return ''
   }
 }
 
 export class ValidationError extends BaseConfigError {
-  constructor(
-    file: string,
-    error: ErrorObject<string, Record<string, any>, unknown>
-  ) {
+  constructor(file: string, error: ValidationErrorObject) {
     super()
-    switch (error.keyword) {
-      case 'required':
-        this.description = `Missing required property '${error.params.missingProperty}'`
-        break
-      case 'type':
-        const property = error.instancePath.slice(1).replace(/\//g, '.')
-        this.description = `The type of property '${property} ${error.message}`
-        break
+    if (isRequiredParams(error.params)) {
+      this.description = `Missing required property '${error.params.missingProperty}'`
+    } else if (isTypeParams(error.params)) {
+      this.description = `The type of property '${error.params.instancePath.slice(1).replace(/\//g, '.')} ${error.message}`
+    } else {
+      this.description = error.message ?? 'Unknown validation error'
     }
+
     this.location = file
     this.suggestion = ''
   }
+}
+
+export type ValidationErrorObject = ErrorObject<string, ErrorParams, unknown>
+type ErrorParams = RequiredParams | TypeParams
+interface RequiredParams {
+  missingProperty: string
+}
+interface TypeParams {
+  instancePath: string
+  message: string
+}
+
+function isRequiredParams(params: ErrorParams): params is RequiredParams {
+  return (params as RequiredParams).missingProperty !== undefined
+}
+
+function isTypeParams(params: ErrorParams): params is TypeParams {
+  return (
+    (params as TypeParams).instancePath !== undefined &&
+    (params as TypeParams).message !== undefined
+  )
 }
 
 export class MissingConfigError extends BaseConfigError {

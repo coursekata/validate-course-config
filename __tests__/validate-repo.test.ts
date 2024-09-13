@@ -123,7 +123,9 @@ describe('auto-update', () => {
     copy_dir_sync(path.join(fixture_dir, 'valid'), temp_dir, true)
 
     const pre_mtimes = get_mtimes_sync(temp_dir)
-    await expect(() => validate_repo([glob], true, true)).rejects.toThrow()
+    await expect(async () =>
+      validate_repo([glob], true, true)
+    ).rejects.toThrow()
     const post_mtimes = get_mtimes_sync(temp_dir)
     expect(post_mtimes).toStrictEqual(pre_mtimes)
 

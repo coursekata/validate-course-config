@@ -20,8 +20,8 @@ interface Release {
  */
 export function determine_release(
   github_ref: string,
-  timezone: string = 'America/Los_Angeles',
-  release_prefix: string = 'release/'
+  timezone = 'America/Los_Angeles',
+  release_prefix = 'release/'
 ): Release {
   const full_prefix = `refs/heads/${release_prefix}`
   if (!github_ref.startsWith(full_prefix)) {

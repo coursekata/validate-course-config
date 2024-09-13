@@ -1,12 +1,11 @@
 import fs from 'fs'
 import path from 'path'
 
-/* istanbul ignore next */
 export function copy_dir_sync(
   source_dir: fs.PathLike,
   target_dir: fs.PathLike,
   overwrite = false
-) {
+): void {
   if (fs.existsSync(target_dir) && overwrite) {
     fs.rmSync(target_dir, { recursive: true, force: true })
   }
@@ -23,7 +22,6 @@ export function copy_dir_sync(
   }
 }
 
-/* istanbul ignore next */
 export function get_mtimes_sync(dir: fs.PathLike): Record<string, Date> {
   const mtimes: Record<string, Date> = {}
   for (const file of fs.readdirSync(dir)) {

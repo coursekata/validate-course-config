@@ -40987,7 +40987,6 @@ class ParseError extends BaseConfigError {
         if (error.linePos && error.linePos[0]) {
             return `${error.linePos[0].line}:${error.linePos[0].col}`;
         }
-        /* istanbul ignore next */
         return '';
     }
 }
@@ -40995,20 +40994,27 @@ exports.ParseError = ParseError;
 class ValidationError extends BaseConfigError {
     constructor(file, error) {
         super();
-        switch (error.keyword) {
-            case 'required':
-                this.description = `Missing required property '${error.params.missingProperty}'`;
-                break;
-            case 'type':
-                const property = error.instancePath.slice(1).replace(/\//g, '.');
-                this.description = `The type of property '${property} ${error.message}`;
-                break;
+        if (isRequiredParams(error.params)) {
+            this.description = `Missing required property '${error.params.missingProperty}'`;
+        }
+        else if (isTypeParams(error.params)) {
+            this.description = `The type of property '${error.params.instancePath.slice(1).replace(/\//g, '.')} ${error.message}`;
+        }
+        else {
+            this.description = error.message ?? 'Unknown validation error';
         }
         this.location = file;
         this.suggestion = '';
     }
 }
 exports.ValidationError = ValidationError;
+function isRequiredParams(params) {
+    return params.missingProperty !== undefined;
+}
+function isTypeParams(params) {
+    return (params.instancePath !== undefined &&
+        params.message !== undefined);
+}
 class MissingConfigError extends BaseConfigError {
     constructor(search_paths) {
         super();

@@ -5,7 +5,7 @@ import { determine_release } from '../src/determine-release'
 it('fails when the release is not for a release branch push', () => {
   expect(() => determine_release('refs/tags/feature-branch-1')).toThrow()
   expect(() => determine_release('refs/pull/2/merge')).toThrow()
-  expect(() => determine_release('refs/heads/feature/v1.0'))
+  expect(() => determine_release('refs/heads/feature/v1.0')).toThrow()
 })
 
 it('returns the current date', () => {
