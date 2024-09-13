@@ -1,24 +1,52 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
-
-# Add your action's branding here. This will appear on the GitHub Marketplace.
+name: 'Validate book YAML'
+description: |
+  Ensure that all book YAML files in the repository are valid both as YAML
+  and as CourseKata book configurations
+author: 'Adam Blake'
 branding:
-  icon: 'heart'
-  color: 'red'
+  icon: 'book-open'
+  color: 'blue'
 
-# Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
-    required: true
-    default: '1000'
+  include:
+    description: |
+      A multiline input of the globs to use to build search paths to find the
+      book configuration files. Use a newline to separate each glob.
+    required: false
+    default: .
+  follow-symbolic-links:
+    description: |
+      Indicates whether to follow symbolic links when searching the globs for
+      book configurations.
+    required: false
+    default: 'true'
+  auto-update:
+    description: |
+      Indicates whether to apply automatic updates as described in the README
+    required: false
+    default: 'false'
+  release-prefix:
+    description: |
+      When auto-update is on, this prefix is used to indicate which branches
+      are considered release branches. If the branch name does not start with
+      this prefix, the auto-update will be rejected. If the branch name does
+      start with the prefix, the prefix will be stripped and the version name
+      will be determined from the remainder.
+    required: false
+    default: 'release/'
 
-# Define your outputs here.
 outputs:
-  time:
-    description: 'Your output description here'
+  errors:
+    description: |
+      A JSON array as a string, where each item is an error object with keys
+      for a "description" of the error, the possible "location" it occured
+      on and a "suggestion" for how to fix it. If there are no errors, an empty
+      array is returned: '[]'
+  warnings:
+    description: |
+      The same as the errors, except these errors can be considered non-
+      critical and don't necessarily need to be fixed.
 
 runs:
-  using: node20
-  main: dist/index.js
+  using: 'node20'
+  main: 'dist/index.js'

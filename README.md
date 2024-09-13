@@ -1,4 +1,4 @@
-# Create a GitHub Action Using TypeScript
+# @coursekata/actions/validate-book-yaml
 
 [![GitHub Super-Linter](https://github.com/actions/typescript-action/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
 ![CI](https://github.com/actions/typescript-action/actions/workflows/ci.yml/badge.svg)
@@ -6,230 +6,224 @@
 [![CodeQL](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml)
 [![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
 
-Use this template to bootstrap the creation of a TypeScript action. :rocket:
+This action searches a directory for CourseKata book configuration YAML files.
+In each search path, any file matching `*.book.yaml` is considered. For each
+book configuration file found, the YAML is validated and then the contents of
+the YAML are validated against the book configuration specification. That
+specification is detailed below in
+[Valid Book Configuration](#valid-book-configuration)
 
-This template includes compilation support, tests, a validation workflow,
-publishing, and versioning guidance.
-
-If you are new, there's also a simpler introduction in the
-[Hello world JavaScript action repository](https://github.com/actions/hello-world-javascript-action).
-
-## Create Your Own Action
-
-To create your own action, you can use this repository as a template! Just
-follow the below instructions:
-
-1. Click the **Use this template** button at the top of the repository
-1. Select **Create a new repository**
-1. Select an owner and name for your new repository
-1. Click **Create repository**
-1. Clone your new repository
-
-> [!IMPORTANT]
->
-> Make sure to remove or update the [`CODEOWNERS`](./CODEOWNERS) file! For
-> details on how to use this file, see
-> [About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
-
-## Initial Setup
-
-After you've cloned the repository to your local machine or codespace, you'll
-need to perform some initial setup steps before you can develop your action.
-
-> [!NOTE]
->
-> You'll need to have a reasonably modern version of
-> [Node.js](https://nodejs.org) handy (20.x or later should work!). If you are
-> using a version manager like [`nodenv`](https://github.com/nodenv/nodenv) or
-> [`nvm`](https://github.com/nvm-sh/nvm), this template has a `.node-version`
-> file at the root of the repository that will be used to automatically switch
-> to the correct version when you `cd` into the repository. Additionally, this
-> `.node-version` file is used by GitHub Actions in any `actions/setup-node`
-> actions.
-
-1. :hammer_and_wrench: Install the dependencies
-
-   ```bash
-   npm install
-   ```
-
-1. :building_construction: Package the TypeScript for distribution
-
-   ```bash
-   npm run bundle
-   ```
-
-1. :white_check_mark: Run the tests
-
-   ```bash
-   $ npm test
-
-   PASS  ./index.test.js
-     ✓ throws invalid number (3ms)
-     ✓ wait 500 ms (504ms)
-     ✓ test runs (95ms)
-
-   ...
-   ```
-
-## Update the Action Metadata
-
-The [`action.yml`](action.yml) file defines metadata about your action, such as
-input(s) and output(s). For details about this file, see
-[Metadata syntax for GitHub Actions](https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions).
-
-When you copy this repository, update `action.yml` with the name, description,
-inputs, and outputs for your action.
-
-## Update the Action Code
-
-The [`src/`](./src/) directory is the heart of your action! This contains the
-source code that will be run when your action is invoked. You can replace the
-contents of this directory with your own code.
-
-There are a few things to keep in mind when writing your action code:
-
-- Most GitHub Actions toolkit and CI/CD operations are processed asynchronously.
-  In `main.ts`, you will see that the action is run in an `async` function.
-
-  ```javascript
-  import * as core from '@actions/core'
-  //...
-
-  async function run() {
-    try {
-      //...
-    } catch (error) {
-      core.setFailed(error.message)
-    }
-  }
-  ```
-
-  For more information about the GitHub Actions toolkit, see the
-  [documentation](https://github.com/actions/toolkit/blob/master/README.md).
-
-So, what are you waiting for? Go ahead and start customizing your action!
-
-1. Create a new branch
-
-   ```bash
-   git checkout -b releases/v1
-   ```
-
-1. Replace the contents of `src/` with your action code
-1. Add tests to `__tests__/` for your source code
-1. Format, test, and build the action
-
-   ```bash
-   npm run all
-   ```
-
-   > This step is important! It will run [`ncc`](https://github.com/vercel/ncc)
-   > to build the final JavaScript action code with all dependencies included.
-   > If you do not run this step, your action will not work correctly when it is
-   > used in a workflow. This step also includes the `--license` option for
-   > `ncc`, which will create a license file for all of the production node
-   > modules used in your project.
-
-1. Commit your changes
-
-   ```bash
-   git add .
-   git commit -m "My first action is ready!"
-   ```
-
-1. Push them to your repository
-
-   ```bash
-   git push -u origin releases/v1
-   ```
-
-1. Create a pull request and get feedback on your action
-1. Merge the pull request into the `main` branch
-
-Your action is now published! :rocket:
-
-For information about versioning your action, see
-[Versioning](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-in the GitHub Actions toolkit.
-
-## Validate the Action
-
-You can now validate the action by referencing it in a workflow file. For
-example, [`ci.yml`](./.github/workflows/ci.yml) demonstrates how to reference an
-action in the same repository.
+## Inputs
 
 ```yaml
-steps:
-  - name: Checkout
-    id: checkout
-    uses: actions/checkout@v4
+- uses: coursekata/actions/validate-book-yaml@v1
+  with:
+    # The globs to use to build search paths. Use a newline to separate each glob.
+    # Optional. Default is '.'
+    include: '.'
 
-  - name: Test Local Action
-    id: test-action
-    uses: ./
-    with:
-      milliseconds: 1000
+    # Indicates whether to follow symbolic links when searching with the globs.
+    # Optional. Default is true
+    follow-symbolic-links: true
 
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.time }}"
+    # Whether to attempt to update the release name and date in the book configs.
+    # Optional. Default is false
+    auto-update: false
+
+    # The prefix used to indicate release branches when updating the release name and date.
+    # Optional. Default is 'release/'
+    release-prefix: 'release/'
 ```
 
-For example workflow runs, check out the
-[Actions tab](https://github.com/actions/typescript-action/actions)! :rocket:
+## Outputs
+
+<!-- prettier-ignore -->
+| name | description | example |
+| - | - | - |
+| `errors` | A stringified JSON array of the errors. Each item is an error object with a `description` of the error, possibly the `location` (file) it occurred in, and possibly a `suggestion` for how to fix it. | `'{"description": "Missing required property 'name'", "location": "path/to/file", "suggestion": "Add a top-level 'name' property."}'` |
+
+## Valid Book Configuration
+
+### Main Top-Level Keys
+
+```yaml
+# Book name.
+# Required. Supports book variable replacement.
+name: 'Book Name'
+
+# Book description.
+# Required.
+description: 'Book description'
+
+# The position of the book in the list of books for the course version. The sort goes by sort order first and then by name.
+# Required. Must be an integer.
+sortOrder: 1
+
+# Custom defined book string variables.
+# Optional.
+variables:
+  var: 'ABC'
+
+# List of book chapters.
+# Required.
+chapters:
+  - # Chapter name.
+    # Required. Supports chapter variable replacement.
+    name: 'Chapter Name'
+
+    # Custom defined chapter string variables.
+    # Optional.
+    variables:
+      number: '1'
+
+    # List of chapter pages.
+    # Required.
+    pages:
+      - # Page name.
+        # Required. Supports chapter/page variable replacement.
+        name: 'Page Name'
+
+        # Short name that would appear on reports.
+        # Required. Supports chapter/page variable replacement.
+        shortName: 'Short Name'
+
+        # The markdown file location.
+        # Required.
+        file: 'path/to/file.md'
+
+        # Indicates if the page is required to continue. If true, the student won’t be able to continue until the page is completed. If omitted, it is assumed that it is not required. This validation is only checked for real classes.
+        required: true
+
+# Customization of the My CourseKata dashboard.
+# Optional. If not included, default values are assumed.
+dashboard:
+  # The name that will appear as the link on the LMS page.
+  # Required if the above `dashboard` key is included. Default is "My Progress + Jupyter".
+  name: 'My Progress + Jupyter'
+
+  # List of tabs that should be shown in the dashboard.
+  # Required if the above `dashboard` key is included. At least one value should be included.
+  tabs:
+    # Indicates if the Class tab should be present. This also controls the My Progress tab for students.
+    - class
+
+    # Indicates if the Students tab should be present.
+    - students
+
+    # Indicates if the Jupyter tab should be present.
+    - jupyter
+
+# List of tools to be included on the book.
+# Optional. Default is none.
+tools:
+  # Include Hypothes.is as a sidebar tool.
+  - hypothesis
+```
+
+### Sample file
+
+```yaml
+name: 'Sample Book - {{ book.var }}'
+description: Sample book's description
+sortOrder: 1
+variables:
+  var: 'ABC'
+chapters:
+  - name: 'Chapter {{ chapter.number }}. Introduction!'
+    variables:
+      number: '1'
+    pages:
+      - name: '{{ page.number }} Welcome to Statistics'
+        shortName: 'Page {{ page.number }}'
+        file: 'chapter-01/1.0-welcome.md'
+        variables:
+          number: '1.0'
+      - name: '{{ page.number }} What Is Understanding?'
+        shortName: 'Page {{ page.number }}'
+        variables:
+          number: '1.1'
+        file: 'chapter-01/1.1-understanding.md'
+        required: true
+
+  - name: 'Chapter 2. Understanding Data'
+    lessons:
+      - name: 'Understanding Data'
+        shortName: Page 2.0
+        file: 'chapter-02/2.0-bunch-of-numbers.md'
+
+dashboard:
+  name: 'My Progress + Jupyter'
+  tabs:
+    - class
+    - students
+    - jupyter
+
+tools:
+  - hypothesis
+```
+
+### Content validations
+
+As part of the course build, there are a series of content validations that are
+run before persisting the changes. The current validations that are checked with
+this Action are described below, however, they are all checked again during the
+build process along with other more fine-grained errors. The checks here are
+just to prevent problems from being committed to the repositories.
+
+- At least one `*.book.yml` file must be present.
+- Book file must be a valid YAML.
+- Book `name` must be present.
+- Book `name` must not be repeated in the same course version.
+- Book `sortOrder` must be present and be a valid integer.
+
+## Automatically update version and date
+
+If `auto-update` is specified, the release version and date will be updated in
+each of the book configs. The release version is taken from the branch name, and
+it will fail to update if the branch name does not follow one of these two
+formats: `release/v<some version>` `release/<some-version>`. The release date
+will be updated to match the current date of the run.
 
 ## Usage
 
-After testing, you can create version tag(s) that developers can use to
-reference different stable versions of your action. For more information, see
-[Versioning](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-in the GitHub Actions toolkit.
+### Basic
 
-To include the action in a workflow in another repository, you can use the
-`uses` syntax with the `@` symbol to reference a specific branch, tag, or commit
-hash.
+This example will search the root directory of a repository for book
+configuration files to validate:
 
 ```yaml
 steps:
-  - name: Checkout
-    id: checkout
-    uses: actions/checkout@v4
+  # https://github.com/actions/checkout
+  - uses: actions/checkout@v4
 
-  - name: Test Local Action
-    id: test-action
-    uses: actions/typescript-action@v1 # Commit with the `v1` tag
-    with:
-      milliseconds: 1000
-
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.time }}"
+  # https://github.com/UCLATALL/actions/validate-book-yaml
+  - name: 'Validate the book configuration files'
+    uses: UCLATALL/actions/validate-book-yaml@v1
 ```
 
-## Publishing a New Release
+### Using the output
 
-This project includes a helper script, [`script/release`](./script/release)
-designed to streamline the process of tagging and pushing new releases for
-GitHub Actions.
+In this example, the errors and warnings are piped into another script using
+[`actions/github-script`](https://github.com/actions/github-script):
 
-GitHub Actions allows users to select a specific version of the action to use,
-based on release tags. This script simplifies this process by performing the
-following steps:
+```yaml
+steps:
+  # https://github.com/actions/checkout
+  - uses: actions/checkout@v4
 
-1. **Retrieving the latest release tag:** The script starts by fetching the most
-   recent SemVer release tag of the current branch, by looking at the local data
-   available in your repository.
-1. **Prompting for a new release tag:** The user is then prompted to enter a new
-   release tag. To assist with this, the script displays the tag retrieved in
-   the previous step, and validates the format of the inputted tag (vX.X.X). The
-   user is also reminded to update the version field in package.json.
-1. **Tagging the new release:** The script then tags a new release and syncs the
-   separate major tag (e.g. v1, v2) with the new release tag (e.g. v1.0.0,
-   v2.1.2). When the user is creating a new major release, the script
-   auto-detects this and creates a `releases/v#` branch for the previous major
-   version.
-1. **Pushing changes to remote:** Finally, the script pushes the necessary
-   commits, tags and branches to the remote repository. From here, you will need
-   to create a new release in GitHub so users can easily reference the new tags
-   in their workflows.
+  # https://github.com/coursekata/validate-book-yaml
+  - name: 'Validate the book configuration files'
+    uses: coursekata/validate-book-yaml@v1
+    continue-on-error: true
+
+  # https://github.com/actions/github-script
+  - name: 'Use the errors in another step'
+    uses: actions/github-script@v7
+    env:
+      ERRORS: ${{ steps.validate-book-yaml.outputs.errors }}
+    with:
+      script: |
+        // assert that there are no errors
+        const assert_equal = (value) => require("node:assert/strict").deepEqual(value, true)
+        assert_equal(Object.keys(JSON.parse(process.env['ERRORS'])).length !== 0)
+```
