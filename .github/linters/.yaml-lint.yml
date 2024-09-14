@@ -1,3 +1,5 @@
+ignore: |
+  __tests__/fixtures/invalid-yaml/
 rules:
   document-end: disable
   document-start:

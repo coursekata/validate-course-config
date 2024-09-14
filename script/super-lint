@@ -1,0 +1,12 @@
+docker run --platform=linux/amd64 \
+  -e RUN_LOCAL=true \
+  -e LOG_LEVEL=WARN \
+  -e DEFAULT_BRANCH=main \
+  -e FILTER_REGEX_EXCLUDE="dist/**/*" \
+  -e VALIDATE_ALL_CODEBASE=true \
+  -e VALIDATE_JAVASCRIPT_STANDARD=false \
+  -e VALIDATE_JSCPD=false \
+  -e VALIDATE_TYPESCRIPT_STANDARD=false \
+  -e SHELL=/bin/bash \
+  -v ~/work/validate-course-yaml/:/tmp/lint \
+  ghcr.io/super-linter/super-linter:latest

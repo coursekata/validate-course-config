@@ -55,7 +55,8 @@ name: 'Book Name'
 # Required.
 description: 'Book description'
 
-# The position of the book in the list of books for the course version. The sort goes by sort order first and then by name.
+# The position of the book in the list of books for the course version. The sort goes by sort order
+# first and then by name.
 # Required. Must be an integer.
 sortOrder: 1
 
@@ -91,8 +92,11 @@ chapters:
         # Required.
         file: 'path/to/file.md'
 
-        # Indicates if the page is required to continue. If true, the student won’t be able to continue until the page is completed. If omitted, it is assumed that it is not required. This validation is only checked for real classes.
-        required: true
+        # Indicates if the page is required to continue. If true, the student won’t be able to
+        # continue until the page is completed. If omitted, it is assumed that it is not required.
+        # This validation is only checked for real classes.
+        # Optional. Default is false.
+        required: false
 
 # Customization of the My CourseKata dashboard.
 # Optional. If not included, default values are assumed.

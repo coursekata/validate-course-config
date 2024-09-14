@@ -27,13 +27,13 @@ need to perform some initial setup steps before you can develop the action.
    npm install
    ```
 
-1. :building_construction: Package the TypeScript for distribution
+2. :building_construction: Package the TypeScript for distribution
 
    ```bash
    npm run bundle
    ```
 
-1. :white_check_mark: Run the tests
+3. :white_check_mark: Run the tests
 
    ```bash
    npm test
@@ -87,7 +87,7 @@ There are a few things to keep in mind when developing action code:
    ```
 
 2. Edit the contents of `src/`
-3. Add tests to `__tests__/` to test the new functionality or bug fix
+3. Add tests to `__tests__/` to test the new functionality or bugfix
 4. Format, test, and build the action
 
    ```bash
@@ -141,16 +141,16 @@ following steps:
 1. **Retrieving the latest release tag:** The script starts by fetching the most
    recent SemVer release tag of the current branch, by looking at the local data
    available in your repository.
-1. **Prompting for a new release tag:** The user is then prompted to enter a new
+2. **Prompting for a new release tag:** The user is then prompted to enter a new
    release tag. To assist with this, the script displays the tag retrieved in
    the previous step, and validates the format of the inputted tag (vX.X.X). The
    user is also reminded to update the version field in package.json.
-1. **Tagging the new release:** The script then tags a new release and syncs the
+3. **Tagging the new release:** The script then tags a new release and syncs the
    separate major tag (e.g. v1, v2) with the new release tag (e.g. v1.0.0,
    v2.1.2). When the user is creating a new major release, the script
    auto-detects this and creates a `releases/v#` branch for the previous major
    version.
-1. **Pushing changes to remote:** Finally, the script pushes the necessary
+4. **Pushing changes to remote:** Finally, the script pushes the necessary
    commits, tags and branches to the remote repository. From here, you will need
    to create a new release in GitHub so users can easily reference the new tags
    in their workflows.

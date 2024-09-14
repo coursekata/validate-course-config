@@ -24,6 +24,12 @@ it('requires at least one book config', async () => {
 })
 
 it('requires all configs to be valid YAML', async () => {
+  // create an invalid yaml file in the fixture directory
+  // this avoids a bug in GitHub Super-Linter that fails to ignore the invalid yaml file
+  fs.writeFileSync(
+    path.join(fixture_dir, 'invalid-yaml', 'invalid-yaml.book.yml'),
+    'name: "invalid yaml'
+  )
   const errors = await validate_repo([test_glob('invalid-yaml')])
   expect(errors[0]).toMatchObject({
     description: expect.stringMatching(/Missing closing "quote/)

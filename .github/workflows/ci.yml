@@ -74,5 +74,6 @@ jobs:
           ERRORS: ${{ steps.test-action--errors.outputs.errors }}
         with:
           script: |
-            const assert_equal = (value) => require("node:assert/strict").deepEqual(value, true)
+            const assert_equal = (value) =>
+              require("node:assert/strict").deepEqual(value, true)
             assert_equal(JSON.parse(process.env['ERRORS']).length !== 0)
