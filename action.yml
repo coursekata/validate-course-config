@@ -20,20 +20,6 @@ inputs:
       book configurations.
     required: false
     default: 'true'
-  auto-update:
-    description: |
-      Indicates whether to apply automatic updates as described in the README
-    required: false
-    default: 'false'
-  release-prefix:
-    description: |
-      When auto-update is on, this prefix is used to indicate which branches
-      are considered release branches. If the branch name does not start with
-      this prefix, the auto-update will be rejected. If the branch name does
-      start with the prefix, the prefix will be stripped and the version name
-      will be determined from the remainder.
-    required: false
-    default: 'release/'
 
 outputs:
   errors:

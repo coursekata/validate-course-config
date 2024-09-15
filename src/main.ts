@@ -6,8 +6,6 @@ import { relativize_paths } from './formatting'
 interface ActionInputs {
   include: string[]
   follow_symbolic_links: boolean
-  auto_update: boolean
-  release_prefix: string
 }
 
 /**
@@ -17,15 +15,11 @@ interface ActionInputs {
 function getInputs(): ActionInputs {
   const include = core.getMultilineInput('include')
   const follow_symbolic_links = core.getBooleanInput('follow-symbolic-links')
-  const auto_update = core.getBooleanInput('auto-update')
-  const release_prefix = core.getInput('release-prefix')
 
   core.debug(`include: ${include}`)
   core.debug(`follow_symbolic_links: ${follow_symbolic_links}`)
-  core.debug(`auto_update: ${auto_update}`)
-  core.debug(`release_prefix: ${release_prefix}`)
 
-  return { include, follow_symbolic_links, auto_update, release_prefix }
+  return { include, follow_symbolic_links }
 }
 
 /**
@@ -46,9 +40,7 @@ export async function run(): Promise<void> {
 
     const validation_errors = await validate_repo(
       inputs.include,
-      inputs.follow_symbolic_links,
-      inputs.auto_update,
-      inputs.release_prefix
+      inputs.follow_symbolic_links
     )
     core.setOutput('errors', validation_errors)
     if (validation_errors.length > 0) {

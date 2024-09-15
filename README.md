@@ -25,14 +25,6 @@ specification is detailed below in
     # Indicates whether to follow symbolic links when searching with the globs.
     # Optional. Default is true
     follow-symbolic-links: true
-
-    # Whether to attempt to update the release name and date in the book configs.
-    # Optional. Default is false
-    auto-update: false
-
-    # The prefix used to indicate release branches when updating the release name and date.
-    # Optional. Default is 'release/'
-    release-prefix: 'release/'
 ```
 
 ## Outputs
@@ -179,14 +171,6 @@ just to prevent problems from being committed to the repositories.
 - Book `name` must be present.
 - Book `name` must not be repeated in the same course version.
 - Book `sortOrder` must be present and be a valid integer.
-
-## Automatically update version and date
-
-If `auto-update` is specified, the release version and date will be updated in
-each of the book configs. The release version is taken from the branch name, and
-it will fail to update if the branch name does not follow one of these two
-formats: `release/v<some version>` `release/<some-version>`. The release date
-will be updated to match the current date of the run.
 
 ## Usage
 
