@@ -1,19 +1,18 @@
-import { expect, it } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
-import { validate_repo } from '../src/validate-repo'
+import { validateRepo } from '../src/validate-repo'
 
 const fixture_dir = path.join(__dirname, 'fixtures')
 const test_glob = (pattern: string): string =>
   path.join(fixture_dir, pattern, '*')
 
 it('has no problems with valid configs', async () => {
-  const errors = await validate_repo([test_glob('valid')])
+  const errors = await validateRepo([test_glob('valid')])
   expect(errors).toHaveLength(0)
 })
 
 it('requires at least one book config', async () => {
-  const errors = await validate_repo([test_glob('no-config')])
+  const errors = await validateRepo([test_glob('no-config')])
   expect(errors[0]).toMatchObject({
     description: expect.stringMatching(/No config files found./)
   })
@@ -32,7 +31,7 @@ it('requires all configs to be valid YAML', async () => {
   fs.writeFileSync(invalidYamlPath, 'name: "invalid yaml')
 
   try {
-    const errors = await validate_repo([test_glob('invalid-yaml')])
+    const errors = await validateRepo([test_glob('invalid-yaml')])
     expect(errors[0]).toMatchObject({
       description: expect.stringMatching(/Missing closing "quote/)
     })
@@ -43,14 +42,14 @@ it('requires all configs to be valid YAML', async () => {
 })
 
 it('requires all configs to have `name` keys', async () => {
-  const errors = await validate_repo([test_glob('missing-name')])
+  const errors = await validateRepo([test_glob('missing-name')])
   expect(errors[0]).toMatchObject({
     description: expect.stringMatching(/Missing required property 'name'/)
   })
 })
 
 it('requires all configs to have unique `names`', async () => {
-  const errors = await validate_repo([test_glob('repeated-name')])
+  const errors = await validateRepo([test_glob('repeated-name')])
   expect(errors[0]).toMatchObject({
     description: expect.stringMatching(
       /Some books have the same value for 'name'/
@@ -59,14 +58,14 @@ it('requires all configs to have unique `names`', async () => {
 })
 
 it('requires all configs to have `sortOrder` keys', async () => {
-  const errors = await validate_repo([test_glob('missing-sortOrder')])
+  const errors = await validateRepo([test_glob('missing-sortOrder')])
   expect(errors[0]).toMatchObject({
     description: expect.stringMatching(/Missing required property 'sortOrder'/)
   })
 })
 
 it('requires all configs to have unique `sortOrder`s', async () => {
-  const errors = await validate_repo([test_glob('repeated-sortOrder')])
+  const errors = await validateRepo([test_glob('repeated-sortOrder')])
   expect(errors[0]).toMatchObject({
     description: expect.stringMatching(
       /Some books have the same value for 'sortOrder'/
@@ -75,7 +74,7 @@ it('requires all configs to have unique `sortOrder`s', async () => {
 })
 
 it('requires that `sortOrder` be an integer', async () => {
-  const errors = await validate_repo([test_glob('non-int-sortOrder')])
+  const errors = await validateRepo([test_glob('non-int-sortOrder')])
   expect(errors[0]).toMatchObject({
     description: expect.stringMatching(/must be integer/)
   })

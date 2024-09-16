@@ -33262,33 +33262,39 @@ exports["default"] = _default;
 /***/ }),
 
 /***/ 6976:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RequiredUniqueError = exports.MissingConfigError = exports.ValidationError = exports.ParseError = void 0;
-const formatting_1 = __nccwpck_require__(9598);
+exports.RequiredUniqueError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = void 0;
 class BaseConfigError {
     description = '';
     location = '';
     suggestion = '';
-}
-class ParseError extends BaseConfigError {
-    constructor(file, err) {
-        super();
-        this.description = err.message;
-        this.location = `${file}:${this.extract_location(err)}`;
-        this.suggestion = 'Fix YAML in offending config file.';
-    }
-    extract_location(error) {
-        if (error.linePos && error.linePos[0]) {
-            return `${error.linePos[0].line}:${error.linePos[0].col}`;
+    /**
+     * Convert the error to a string.
+     * @returns The error as a string.
+     */
+    toString() {
+        const lines = [
+            `Description: ${this.description}`,
+            `Location: ${this.location}`
+        ];
+        if (this.suggestion) {
+            lines.push(`Suggestion: ${this.suggestion}`);
         }
-        return '';
+        return this.relativizePaths(lines.join('\n'));
+    }
+    /**
+     * Find and replace all instances of the current directory with "."
+     * @param output An output string to format.
+     */
+    relativizePaths(output) {
+        const matcher = new RegExp(process.cwd(), 'g');
+        return output.replace(matcher, '.');
     }
 }
-exports.ParseError = ParseError;
 class ValidationError extends BaseConfigError {
     constructor(file, error) {
         super();
@@ -33296,13 +33302,14 @@ class ValidationError extends BaseConfigError {
             this.description = `Missing required property '${error.params.missingProperty}'`;
         }
         else if (isTypeParams(error.params)) {
-            this.description = `The type of property '${error.params.instancePath.slice(1).replace(/\//g, '.')} ${error.message}`;
+            this.description = `The type of property '${error.params.instancePath.slice(1).replace(/\//g, '.')}' ${error.message}`;
         }
         else {
             this.description = error.message ?? 'Unknown validation error';
         }
         this.location = file;
-        this.suggestion = '';
+        this.suggestion =
+            'Ensure all properties are correctly set based on the schema.';
     }
 }
 exports.ValidationError = ValidationError;
@@ -33313,69 +33320,40 @@ function isTypeParams(params) {
     return (params.instancePath !== undefined &&
         params.message !== undefined);
 }
-class MissingConfigError extends BaseConfigError {
-    constructor(search_paths) {
+class ParseError extends BaseConfigError {
+    constructor(file, err) {
         super();
-        const paths = search_paths.join(' ');
-        this.description = `No config files found. Searched these paths: ${paths}`;
+        this.description = err.message;
+        this.location = `${file}:${this.extractLocation(err)}`;
+        this.suggestion = 'Fix YAML in the offending config file.';
+    }
+    extractLocation(error) {
+        if (error.linePos && error.linePos[0]) {
+            return `${error.linePos[0].line}:${error.linePos[0].col}`;
+        }
+        return '';
+    }
+}
+exports.ParseError = ParseError;
+class MissingConfigError extends BaseConfigError {
+    constructor(searchPaths) {
+        super();
+        this.description = `No config files found. Searched paths: ${searchPaths.join(', ')}`;
         this.location = '';
-        this.suggestion = (0, formatting_1.cat)([
-            'Add at least one book configuration file to the repository.',
-            'It must have the file extension `.book.yml`'
-        ]);
+        this.suggestion =
+            'Add at least one valid book configuration file with the `.book.yml` extension.';
     }
 }
 exports.MissingConfigError = MissingConfigError;
 class RequiredUniqueError extends BaseConfigError {
     constructor(files, key, value) {
         super();
-        this.description = (0, formatting_1.bullet_list)(`Some books have the same value for '${key}' ('${value}'):`, files);
+        this.description = `Some books have the same value for '${key}' ('${value}'): ${files.join(', ')}`;
         this.location = '';
-        this.suggestion = `Ensure all books have unique '${key}'s.`;
+        this.suggestion = `Ensure all books have unique values for '${key}'.`;
     }
 }
 exports.RequiredUniqueError = RequiredUniqueError;
-
-
-/***/ }),
-
-/***/ 9598:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.bullet_list = bullet_list;
-exports.cat = cat;
-exports.relativize_paths = relativize_paths;
-/**
- * Format a message and array of sub-points as a bullet-pointed string.
- * @param message The main message to show.
- * @param bullets An array of strings to convert to a bulleted list.
- * @param indent_level How far to indent the bullets (each level is two spaces).
- * @param bullet_char The character to use for the bullet point.
- */
-function bullet_list(message, bullets, indent_level = 1, bullet_char = '-') {
-    const indent = '  '.repeat(indent_level);
-    const bullet_strings = bullets.map(x => `${indent}${bullet_char} ${x}`);
-    return `${message}\n${bullet_strings.join('\n')}`;
-}
-/**
- * Convert an array of strings to a single string delimited by the `spacer`.
- * @param messages The strings to concatenate.
- * @param spacer The character to delimit the messages with.
- */
-function cat(messages, spacer = ' ') {
-    return messages.join(spacer);
-}
-/**
- * Find and replace all instances of the current directory with "."
- * @param output An output string to format.
- */
-function relativize_paths(output) {
-    const matcher = new RegExp(process.cwd(), 'g');
-    return output.replace(matcher, '.');
-}
 
 
 /***/ }),
@@ -33412,7 +33390,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const validate_repo_1 = __nccwpck_require__(7244);
-const formatting_1 = __nccwpck_require__(9598);
 /**
  * Get the inputs for the action.
  * @returns The inputs for the action.
@@ -33438,11 +33415,10 @@ async function run() {
     safelyExecute(async () => {
         const inputs = getInputs();
         validateInputs(inputs);
-        const validation_errors = await (0, validate_repo_1.validate_repo)(inputs.include, inputs.follow_symbolic_links);
-        core.setOutput('errors', validation_errors);
-        if (validation_errors.length > 0) {
-            const message = (0, formatting_1.relativize_paths)(format_error_message(validation_errors));
-            core.setFailed(message);
+        const errors = await (0, validate_repo_1.validateRepo)(inputs.include, inputs.follow_symbolic_links);
+        core.setOutput('errors', errors);
+        if (errors.length > 0) {
+            core.setFailed(formatErrors(errors));
         }
     });
 }
@@ -33465,23 +33441,14 @@ async function safelyExecute(action) {
     }
 }
 /**
- * Format the error message for the action.
- * @param validation_errors - The errors found during validation.
- * @returns The formatted error message.
+ * Format the errors for output.
+ * @param errors - The errors to format.
+ * @returns The formatted errors.
  */
-function format_error_message(validation_errors) {
+function formatErrors(errors) {
     return [
         'Some errors were found when validating the book configuration files',
-        ...validation_errors.map(error => {
-            const messages = [
-                `Description: ${error.description}`,
-                `Location: ${error.location}`
-            ];
-            if (error.suggestion !== '') {
-                messages.push(`Suggestion: ${error.suggestion}`);
-            }
-            return messages.join('\n');
-        })
+        ...errors
     ].join('\n\n');
 }
 
@@ -33494,8 +33461,8 @@ function format_error_message(validation_errors) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.book_schema = void 0;
-exports.book_schema = {
+exports.bookSchema = void 0;
+exports.bookSchema = {
     // $schema: 'https://json-schema.org/draft/2020-12/schema',
     title: 'BookConfig',
     description: 'A configuration for a book',
@@ -33669,7 +33636,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.validate_repo = validate_repo;
+exports.validateRepo = validateRepo;
 const core = __importStar(__nccwpck_require__(2186));
 const glob = __importStar(__nccwpck_require__(8090));
 const ajv_1 = __importDefault(__nccwpck_require__(2426));
@@ -33678,69 +33645,125 @@ const path_1 = __importDefault(__nccwpck_require__(1017));
 const yaml_1 = __importDefault(__nccwpck_require__(4083));
 const errors_1 = __nccwpck_require__(6976);
 const schema_1 = __nccwpck_require__(2199);
-async function validate_repo(include, follow_symbolic_links = true) {
-    const ajv = new ajv_1.default({ allowUnionTypes: true });
-    const validate = ajv.compile(schema_1.book_schema);
+const ajv = new ajv_1.default({ allowUnionTypes: true });
+const validateConfig = ajv.compile(schema_1.bookSchema);
+async function validateRepo(include, followSymbolicLinks = true) {
+    const errors = [];
+    const configs = {};
+    const glob = await globConfigs(include, followSymbolicLinks);
+    const { files, searchPaths } = glob;
+    if (files.length === 0) {
+        return [new errors_1.MissingConfigError(searchPaths)];
+    }
+    for (const file of files) {
+        const config = parseYAMLFile(file, errors);
+        if (!config)
+            continue;
+        validateConfigSchema(file, config, errors);
+        configs[file] = config;
+    }
+    checkUniqueValues(configs, ['sortOrder', 'name'], errors);
+    return errors;
+}
+/**
+ * Glob the configuration files.
+ * @param include The glob patterns to search for.
+ * @param followSymbolicLinks Whether to follow symbolic links.
+ * @returns The list of files found and the search paths.
+ */
+async function globConfigs(include, followSymbolicLinks) {
+    core.debug(`Globbing for patterns: ${include.join(', ')}`);
     const globber = await glob.create(include.join('\n'), {
-        followSymbolicLinks: follow_symbolic_links,
+        followSymbolicLinks: followSymbolicLinks,
         matchDirectories: false
     });
-    let file_count = 0;
-    const errors = [];
-    const configs = [];
-    const unique_trackers = {
-        name: {},
-        sortOrder: {}
-    };
-    for await (const file of globber.globGenerator()) {
-        if (!path_1.default.basename(file).endsWith('.book.yml')) {
-            continue;
-        }
-        core.debug(`validating '${file}'`);
-        file_count++;
-        const yaml = fs_1.default.readFileSync(file, 'utf-8');
-        let config;
-        let was_error = false;
-        try {
-            config = yaml_1.default.parse(yaml);
-            configs.push(config);
-        }
-        catch (err) {
-            errors.push(new errors_1.ParseError(file, err));
-            was_error = true;
-            continue;
-        }
-        validate(config);
-        validate.errors?.forEach(error => {
-            errors.push(new errors_1.ValidationError(file, error));
-            was_error = true;
-        });
-        // track values that should be unique across configs
-        if (!validate.errors) {
-            for (const tracker_name in unique_trackers) {
-                const tracker = unique_trackers[tracker_name];
-                const value = config[tracker_name].toString();
-                if (!tracker[value])
-                    tracker[value] = [];
-                tracker[value].push(file);
-            }
+    const globbedFiles = await globber.glob();
+    core.debug(`Globbed files: ${globbedFiles.join(', ')}`);
+    const files = globbedFiles.filter(file => {
+        return path_1.default.basename(file).endsWith('.book.yml');
+    });
+    core.debug(`Filtered files: ${files.join(', ')}`);
+    return { files, searchPaths: globber.getSearchPaths() };
+}
+/**
+ * Parse a YAML file into a BookConfig object.
+ * @param file The file to parse.
+ * @param errors The list of errors to append to if parsing fails.
+ * @returns The parsed BookConfig or undefined if there was a parse error.
+ */
+function parseYAMLFile(file, errors) {
+    core.debug(`Parsing YAML file: '${file}'`);
+    const yaml = fs_1.default.readFileSync(file, 'utf-8');
+    try {
+        return yaml_1.default.parse(yaml);
+    }
+    catch (err) {
+        errors.push(new errors_1.ParseError(file, err));
+        return undefined;
+    }
+}
+/**
+ * Validate a BookConfig object against the schema.
+ * @param file The file path of the configuration.
+ * @param config The BookConfig object to validate.
+ * @param errors The list of errors to append to if validation fails.
+ */
+function validateConfigSchema(file, config, errors) {
+    core.debug(`Validating schema for '${file}'`);
+    validateConfig(config);
+    validateConfig.errors?.forEach(error => {
+        errors.push(new errors_1.ValidationError(file, error));
+    });
+}
+/**
+ * Ensure that specific fields (like `name` and `sortOrder`) are unique across all configs.
+ * @param configs A map of file paths to BookConfig objects.
+ * @param keys The list of keys to check for uniqueness.
+ * @param errors The list of errors to append to if uniqueness validation fails.
+ */
+function checkUniqueValues(configs, keys, errors) {
+    // initialize tracker for each key
+    const trackers = {};
+    keys.forEach(key => (trackers[key] = {}));
+    // track the values for each key in each config
+    for (const filepath in configs) {
+        const config = configs[filepath];
+        keys.forEach(key => trackValue(trackers[key], config[key]?.toString(), filepath));
+    }
+    // check for uniqueness in each key
+    keys.forEach(key => {
+        checkUnique(trackers[key], key, errors);
+    });
+}
+/**
+ * Track the unique values of a specific field across configs.
+ * @param tracker The unique value tracker object.
+ * @param value The value to track.
+ * @param key The key to track (e.g., 'name', 'sortOrder').
+ * @param file The file where the value is found.
+ * @param errors The list of errors to append to if uniqueness fails.
+ */
+function trackValue(tracker, value, file) {
+    if (!value)
+        return;
+    if (!tracker[value]) {
+        tracker[value] = [];
+    }
+    tracker[value].push(file);
+}
+/**
+ * Check for uniqueness in tracked values and report errors if duplicates are found.
+ * @param tracker The tracker object storing files for each value.
+ * @param key The key being tracked.
+ * @param errors The list of errors to append to if duplicates are found.
+ */
+function checkUnique(tracker, key, errors) {
+    for (const value in tracker) {
+        const files = tracker[value];
+        if (files.length > 1) {
+            errors.push(new errors_1.RequiredUniqueError(files, key, value));
         }
     }
-    for (const tracker_name in unique_trackers) {
-        core.debug(`checking unique key across configs: '${tracker_name}'`);
-        const tracker = unique_trackers[tracker_name];
-        for (const value in tracker) {
-            const files = tracker[value];
-            if (files.length > 1) {
-                errors.push(new errors_1.RequiredUniqueError(files, tracker_name, value));
-            }
-        }
-    }
-    // no configs
-    if (file_count === 0) {
-        errors.push(new errors_1.MissingConfigError(globber.getSearchPaths()));
-    }
-    return errors;
 }
 
 

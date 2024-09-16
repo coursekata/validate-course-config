@@ -1,7 +1,6 @@
 import * as core from '@actions/core'
+import { validateRepo } from './validate-repo'
 import { IConfigError } from './errors'
-import { validate_repo } from './validate-repo'
-import { relativize_paths } from './formatting'
 
 interface ActionInputs {
   include: string[]
@@ -38,14 +37,14 @@ export async function run(): Promise<void> {
     const inputs = getInputs()
     validateInputs(inputs)
 
-    const validation_errors = await validate_repo(
+    const errors = await validateRepo(
       inputs.include,
       inputs.follow_symbolic_links
     )
-    core.setOutput('errors', validation_errors)
-    if (validation_errors.length > 0) {
-      const message = relativize_paths(format_error_message(validation_errors))
-      core.setFailed(message)
+
+    core.setOutput('errors', errors)
+    if (errors.length > 0) {
+      core.setFailed(formatErrors(errors))
     }
   })
 }
@@ -68,22 +67,13 @@ async function safelyExecute(action: () => Promise<void>): Promise<void> {
 }
 
 /**
- * Format the error message for the action.
- * @param validation_errors - The errors found during validation.
- * @returns The formatted error message.
+ * Format the errors for output.
+ * @param errors - The errors to format.
+ * @returns The formatted errors.
  */
-function format_error_message(validation_errors: IConfigError[]): string {
+function formatErrors(errors: IConfigError[]): string {
   return [
     'Some errors were found when validating the book configuration files',
-    ...validation_errors.map(error => {
-      const messages = [
-        `Description: ${error.description}`,
-        `Location: ${error.location}`
-      ]
-      if (error.suggestion !== '') {
-        messages.push(`Suggestion: ${error.suggestion}`)
-      }
-      return messages.join('\n')
-    })
+    ...errors
   ].join('\n\n')
 }
