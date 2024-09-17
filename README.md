@@ -16,7 +16,8 @@ specification is detailed below in
 ## Inputs
 
 ```yaml
-- uses: coursekata/actions/validate-book-yaml@v2
+# https://github.com/coursekata/validate-book-yaml
+- uses: coursekata/validate-book-yaml@v2
   with:
     # The globs to use to build search paths. Use a newline to separate each glob.
     # Optional. Default is '.'
@@ -184,9 +185,9 @@ steps:
   # https://github.com/actions/checkout
   - uses: actions/checkout@v4
 
-  # https://github.com/UCLATALL/actions/validate-book-yaml
+  # https://github.com/coursekata/validate-book-yaml
   - name: 'Validate the book configuration files'
-    uses: UCLATALL/actions/validate-book-yaml@v1
+    uses: coursekata/validate-book-yaml@v2
 ```
 
 ### Using the output

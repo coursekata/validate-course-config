@@ -1,5 +1,5 @@
 {
-  "name": "validate-book-yaml",
+  "name": "@coursekata/validate-book-yaml",
   "description": "GitHub Action to validate CourseKata book configuration files.",
   "version": "2.0.0",
   "author": "Adam Blake",
@@ -7,11 +7,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/UCLATALL/actions.git",
-    "directory": "validate-book-yaml"
+    "url": "git+https://github.com/coursekata/validate-book-yaml.git"
   },
   "bugs": {
-    "url": "https://github.com/UCLATALL/actions/issues"
+    "url": "https://github.com/coursekata/validate-book-yaml/issues"
   },
   "keywords": [
     "coursekata",
