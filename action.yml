@@ -1,7 +1,7 @@
-name: 'Validate book YAML'
+name: Validate CourseKata course configuration files
 description: |
-  Ensure that all book YAML files in the repository are valid both as YAML
-  and as CourseKata book configurations
+  Ensure that all book configuration files in the repository are valid according to the CourseKata
+  schema and build constraints.
 author: 'Adam Blake'
 branding:
   icon: 'book-open'

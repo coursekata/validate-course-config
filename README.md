@@ -1,9 +1,9 @@
-# @coursekata/validate-book-yaml
+# coursekata/validate-course-config
 
-[![GitHub Super-Linter](https://github.com/actions/typescript-action/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
-![CI](https://github.com/actions/typescript-action/actions/workflows/ci.yml/badge.svg)
-[![Check dist/](https://github.com/actions/typescript-action/actions/workflows/check-dist.yml/badge.svg)](https://github.com/actions/typescript-action/actions/workflows/check-dist.yml)
-[![CodeQL](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/actions/typescript-action/actions/workflows/codeql-analysis.yml)
+[![GitHub Super-Linter](https://github.com/coursekata/validate-course-config/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
+![CI](https://github.com/coursekata/validate-course-config/actions/workflows/ci.yml/badge.svg)
+[![Check dist/](https://github.com/coursekata/validate-course-config/actions/workflows/check-dist.yml/badge.svg)](https://github.com/coursekata/validate-course-config/actions/workflows/check-dist.yml)
+[![CodeQL](https://github.com/coursekata/validate-course-config/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/coursekata/validate-course-config/actions/workflows/codeql-analysis.yml)
 [![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
 
 This action searches a directory for CourseKata book configuration YAML files.
@@ -16,8 +16,8 @@ specification is detailed below in
 ## Inputs
 
 ```yaml
-# https://github.com/coursekata/validate-book-yaml
-- uses: coursekata/validate-book-yaml@v2
+# https://github.com/coursekata/validate-course-config
+- uses: coursekata/validate-course-config@v2
   with:
     # The globs to use to build search paths. Use a newline to separate each glob.
     # Optional. Default is '.'
@@ -185,9 +185,9 @@ steps:
   # https://github.com/actions/checkout
   - uses: actions/checkout@v4
 
-  # https://github.com/coursekata/validate-book-yaml
-  - name: 'Validate the book configuration files'
-    uses: coursekata/validate-book-yaml@v2
+  # https://github.com/coursekata/validate-course-config
+  - name: Validate the course configuration files
+    uses: coursekata/validate-course-config@v2
 ```
 
 ### Using the output
@@ -200,13 +200,13 @@ steps:
   # https://github.com/actions/checkout
   - uses: actions/checkout@v4
 
-  # https://github.com/coursekata/validate-book-yaml
-  - name: 'Validate the book configuration files'
-    uses: coursekata/validate-book-yaml@v2
+  # https://github.com/coursekata/validate-course-config
+  - name: Validate the course configuration files
+    uses: coursekata/validate-course-configl@v2
     continue-on-error: true
 
   # https://github.com/actions/github-script
-  - name: 'Use the errors in another step'
+  - name: Use the errors in another step
     uses: actions/github-script@v7
     env:
       ERRORS: ${{ steps.validate-book-yaml.outputs.errors }}

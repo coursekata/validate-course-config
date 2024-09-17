@@ -1,8 +1,8 @@
 {
-  "name": "@coursekata/validate-book-yaml",
-  "description": "GitHub Action to validate CourseKata book configuration files.",
+  "name": "@coursekata/validate-course-config",
+  "description": "GitHub Action to validate CourseKata course configuration files.",
   "version": "2.1.0",
-  "author": "Adam Blake",
+  "author": "Adam Blake <adam@coursekata.org>",
   "private": true,
   "license": "MIT",
   "repository": {
