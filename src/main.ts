@@ -4,7 +4,7 @@ import { IConfigError } from './errors'
 
 interface ActionInputs {
   include: string[]
-  follow_symbolic_links: boolean
+  followSymbolicLinks: boolean
 }
 
 /**
@@ -13,12 +13,12 @@ interface ActionInputs {
  */
 function getInputs(): ActionInputs {
   const include = core.getMultilineInput('include')
-  const follow_symbolic_links = core.getBooleanInput('follow-symbolic-links')
+  const followSymbolicLinks = core.getBooleanInput('follow-symbolic-links')
 
   core.debug(`include: ${include}`)
-  core.debug(`follow_symbolic_links: ${follow_symbolic_links}`)
+  core.debug(`followSymbolicLinks: ${followSymbolicLinks}`)
 
-  return { include, follow_symbolic_links }
+  return { include, followSymbolicLinks }
 }
 
 /**
@@ -31,7 +31,7 @@ export async function run(): Promise<void> {
 
     const errors = await validateRepo(
       inputs.include,
-      inputs.follow_symbolic_links
+      inputs.followSymbolicLinks
     )
 
     core.setOutput('errors', errors)
