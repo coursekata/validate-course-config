@@ -1,0 +1,11 @@
+name: book
+sortOrder: 1
+chapters:
+  - name: Chapter 1
+    pages:
+      - name: Page 1
+        file: page_1.md
+        shortName: Page 1
+      - name: Page 2
+        file: page_2.md
+        shortName: Page 1

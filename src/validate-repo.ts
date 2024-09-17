@@ -5,10 +5,11 @@ import fs from 'fs'
 import path from 'path'
 import YAML from 'yaml'
 import {
+  DuplicateAcrossFilesError,
+  DuplicateWithinFileError,
   IConfigError,
-  ParseError,
-  RequiredUniqueError,
   MissingConfigError,
+  ParseError,
   ValidationError,
   ValidationErrorObject
 } from './errors'
@@ -42,10 +43,11 @@ export async function validateRepo(
     if (!config) continue
 
     validateConfigSchema(file, config, errors)
+    checkUniqueValuesWithinConfig(config, 'shortName', errors, file)
     configs[file] = config
   }
 
-  checkUniqueValues(configs, ['sortOrder', 'name'], errors)
+  checkUniqueValuesAcrossConfigs(configs, ['sortOrder', 'name'], errors)
   return errors
 }
 
@@ -121,7 +123,7 @@ function validateConfigSchema(
  * @param keys The list of keys to check for uniqueness.
  * @param errors The list of errors to append to if uniqueness validation fails.
  */
-function checkUniqueValues(
+function checkUniqueValuesAcrossConfigs(
   configs: Record<string, BookConfig>,
   keys: string[],
   errors: IConfigError[]
@@ -134,13 +136,13 @@ function checkUniqueValues(
   for (const filepath in configs) {
     const config = configs[filepath]
     keys.forEach(key =>
-      trackValue(trackers[key], config[key]?.toString(), filepath)
+      trackValueAcrossFiles(trackers[key], config[key]?.toString(), filepath)
     )
   }
 
   // check for uniqueness in each key
   keys.forEach(key => {
-    checkUnique(trackers[key], key, errors)
+    checkUniqueAcrossConfigs(trackers[key], key, errors)
   })
 }
 
@@ -152,7 +154,7 @@ function checkUniqueValues(
  * @param file The file where the value is found.
  * @param errors The list of errors to append to if uniqueness fails.
  */
-function trackValue(
+function trackValueAcrossFiles(
   tracker: Record<string, string[]>,
   value: string | undefined,
   file: string
@@ -172,7 +174,7 @@ function trackValue(
  * @param key The key being tracked.
  * @param errors The list of errors to append to if duplicates are found.
  */
-function checkUnique(
+function checkUniqueAcrossConfigs(
   tracker: Record<string, string[]>,
   key: string,
   errors: IConfigError[]
@@ -180,7 +182,115 @@ function checkUnique(
   for (const value in tracker) {
     const files = tracker[value]
     if (files.length > 1) {
-      errors.push(new RequiredUniqueError(files, key, value))
+      errors.push(new DuplicateAcrossFilesError(files, key, value))
     }
   }
+}
+
+/**
+ * Ensure that specific fields (e.g., 'shortName') are unique within a single config file.
+ * @param config A BookConfig object representing the file content.
+ * @param key The key to check for uniqueness within the file.
+ * @param errors The list of errors to append to if uniqueness validation fails.
+ * @param filepath The path of the file being validated.
+ */
+function checkUniqueValuesWithinConfig(
+  config: BookConfig,
+  key: string,
+  errors: IConfigError[],
+  filepath: string
+): void {
+  const tracker: Record<string, string[]> = {}
+  traverseConfig(config, key, tracker, filepath)
+  checkUniqueWithinConfig(tracker, key, errors, filepath)
+}
+
+/**
+ * Traverse the structure of a config file to track values for a specific key.
+ * @param config A BookConfig object or any nested structure.
+ * @param key The key to check for uniqueness.
+ * @param tracker The tracker object storing occurrences of values.
+ * @param filepath The path of the file being validated.
+ * @param currentPath The current path within the YAML structure.
+ */
+function traverseConfig(
+  config: Record<string, unknown> | unknown[],
+  key: string,
+  tracker: Record<string, string[]>,
+  filepath: string,
+  currentPath = ''
+): void {
+  if (isObject(config)) {
+    if (key in config) {
+      const fullPath = currentPath ? `${currentPath}.${key}` : key
+      const value = config[key]
+      if (typeof value === 'string') {
+        trackValueWithinConfig(tracker, value, fullPath)
+      }
+    }
+
+    Object.entries(config).forEach(([nestedKey, value]) => {
+      if (isObject(value) || Array.isArray(value)) {
+        const newPath = currentPath ? `${currentPath}.${nestedKey}` : nestedKey
+        traverseConfig(value, key, tracker, filepath, newPath)
+      }
+    })
+  } else if (Array.isArray(config)) {
+    config.forEach((item, index) => {
+      if (isObject(item) || Array.isArray(item)) {
+        const newPath = `${currentPath}[${index}]`
+        traverseConfig(item, key, tracker, filepath, newPath)
+      }
+    })
+  }
+}
+
+/**
+ * Track the unique values within a file.
+ * @param tracker The unique value tracker object.
+ * @param value The value to track.
+ * @param path The full path where the value is found.
+ */
+function trackValueWithinConfig(
+  tracker: Record<string, string[]>,
+  value: string | undefined,
+  path: string
+): void {
+  if (!value) return
+
+  if (!tracker[value]) {
+    tracker[value] = []
+  }
+
+  tracker[value].push(path)
+}
+
+/**
+ * Check for uniqueness in tracked values and report errors if duplicates are found within a file.
+ * @param tracker The tracker object storing files for each value.
+ * @param key The key being tracked (e.g., 'shortName').
+ * @param errors The list of errors to append to if duplicates are found.
+ * @param filepath The path of the file being validated.
+ */
+function checkUniqueWithinConfig(
+  tracker: Record<string, string[]>,
+  key: string,
+  errors: IConfigError[],
+  filepath: string
+): void {
+  for (const value in tracker) {
+    const paths = tracker[value]
+    if (paths.length > 1) {
+      errors.push(new DuplicateWithinFileError(filepath, key, value, paths))
+    }
+  }
+}
+
+/**
+ * Type guard to check if a value is a plain object (Record<string, unknown>).
+ * @param value The value to check.
+ * @returns True if the value is an object, false otherwise.
+ */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

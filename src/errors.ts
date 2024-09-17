@@ -104,11 +104,20 @@ export class MissingConfigError extends BaseConfigError {
   }
 }
 
-export class RequiredUniqueError extends BaseConfigError {
+export class DuplicateAcrossFilesError extends BaseConfigError {
   constructor(files: string[], key: string, value: string | number) {
     super()
     this.description = `Some books have the same value for '${key}' ('${value}'): ${files.join(', ')}`
     this.location = ''
     this.suggestion = `Ensure all books have unique values for '${key}'.`
+  }
+}
+
+export class DuplicateWithinFileError extends BaseConfigError {
+  constructor(file: string, key: string, value: string, paths: string[]) {
+    super()
+    this.description = `Duplicate value '${value}' for key '${key}' found: ${paths.join(', ')}`
+    this.location = file
+    this.suggestion = `Ensure that '${key}' has unique values at each location.`
   }
 }

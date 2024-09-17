@@ -33267,7 +33267,7 @@ exports["default"] = _default;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RequiredUniqueError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = void 0;
+exports.DuplicateWithinFileError = exports.DuplicateAcrossFilesError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = void 0;
 class BaseConfigError {
     description = '';
     location = '';
@@ -33345,7 +33345,7 @@ class MissingConfigError extends BaseConfigError {
     }
 }
 exports.MissingConfigError = MissingConfigError;
-class RequiredUniqueError extends BaseConfigError {
+class DuplicateAcrossFilesError extends BaseConfigError {
     constructor(files, key, value) {
         super();
         this.description = `Some books have the same value for '${key}' ('${value}'): ${files.join(', ')}`;
@@ -33353,7 +33353,16 @@ class RequiredUniqueError extends BaseConfigError {
         this.suggestion = `Ensure all books have unique values for '${key}'.`;
     }
 }
-exports.RequiredUniqueError = RequiredUniqueError;
+exports.DuplicateAcrossFilesError = DuplicateAcrossFilesError;
+class DuplicateWithinFileError extends BaseConfigError {
+    constructor(file, key, value, paths) {
+        super();
+        this.description = `Duplicate value '${value}' for key '${key}' found: ${paths.join(', ')}`;
+        this.location = file;
+        this.suggestion = `Ensure that '${key}' has unique values at each location.`;
+    }
+}
+exports.DuplicateWithinFileError = DuplicateWithinFileError;
 
 
 /***/ }),
@@ -33402,19 +33411,12 @@ function getInputs() {
     return { include, follow_symbolic_links };
 }
 /**
- * Validate the inputs for the action.
- * @param inputs - The inputs for the action.
- * @throws Error if the inputs are invalid.
- */
-function validateInputs(inputs) { }
-/**
  * The main function for the action.
  * @returns Resolves when the action is complete.
  */
 async function run() {
     safelyExecute(async () => {
         const inputs = getInputs();
-        validateInputs(inputs);
         const errors = await (0, validate_repo_1.validateRepo)(inputs.include, inputs.follow_symbolic_links);
         core.setOutput('errors', errors);
         if (errors.length > 0) {
@@ -33647,6 +33649,12 @@ const errors_1 = __nccwpck_require__(6976);
 const schema_1 = __nccwpck_require__(2199);
 const ajv = new ajv_1.default({ allowUnionTypes: true });
 const validateConfig = ajv.compile(schema_1.bookSchema);
+/**
+ * Validate the repository configuration.
+ * @param include The glob patterns to search for.
+ * @param followSymbolicLinks Whether to follow symbolic links.
+ * @returns A list of errors found in the configuration.
+ */
 async function validateRepo(include, followSymbolicLinks = true) {
     const errors = [];
     const configs = {};
@@ -33660,9 +33668,10 @@ async function validateRepo(include, followSymbolicLinks = true) {
         if (!config)
             continue;
         validateConfigSchema(file, config, errors);
+        checkUniqueValuesWithinConfig(config, 'shortName', errors, file);
         configs[file] = config;
     }
-    checkUniqueValues(configs, ['sortOrder', 'name'], errors);
+    checkUniqueValuesAcrossConfigs(configs, ['sortOrder', 'name'], errors);
     return errors;
 }
 /**
@@ -33721,18 +33730,18 @@ function validateConfigSchema(file, config, errors) {
  * @param keys The list of keys to check for uniqueness.
  * @param errors The list of errors to append to if uniqueness validation fails.
  */
-function checkUniqueValues(configs, keys, errors) {
+function checkUniqueValuesAcrossConfigs(configs, keys, errors) {
     // initialize tracker for each key
     const trackers = {};
     keys.forEach(key => (trackers[key] = {}));
     // track the values for each key in each config
     for (const filepath in configs) {
         const config = configs[filepath];
-        keys.forEach(key => trackValue(trackers[key], config[key]?.toString(), filepath));
+        keys.forEach(key => trackValueAcrossFiles(trackers[key], config[key]?.toString(), filepath));
     }
     // check for uniqueness in each key
     keys.forEach(key => {
-        checkUnique(trackers[key], key, errors);
+        checkUniqueAcrossConfigs(trackers[key], key, errors);
     });
 }
 /**
@@ -33743,7 +33752,7 @@ function checkUniqueValues(configs, keys, errors) {
  * @param file The file where the value is found.
  * @param errors The list of errors to append to if uniqueness fails.
  */
-function trackValue(tracker, value, file) {
+function trackValueAcrossFiles(tracker, value, file) {
     if (!value)
         return;
     if (!tracker[value]) {
@@ -33757,13 +33766,95 @@ function trackValue(tracker, value, file) {
  * @param key The key being tracked.
  * @param errors The list of errors to append to if duplicates are found.
  */
-function checkUnique(tracker, key, errors) {
+function checkUniqueAcrossConfigs(tracker, key, errors) {
     for (const value in tracker) {
         const files = tracker[value];
         if (files.length > 1) {
-            errors.push(new errors_1.RequiredUniqueError(files, key, value));
+            errors.push(new errors_1.DuplicateAcrossFilesError(files, key, value));
         }
     }
+}
+/**
+ * Ensure that specific fields (e.g., 'shortName') are unique within a single config file.
+ * @param config A BookConfig object representing the file content.
+ * @param key The key to check for uniqueness within the file.
+ * @param errors The list of errors to append to if uniqueness validation fails.
+ * @param filepath The path of the file being validated.
+ */
+function checkUniqueValuesWithinConfig(config, key, errors, filepath) {
+    const tracker = {};
+    traverseConfig(config, key, tracker, filepath);
+    checkUniqueWithinConfig(tracker, key, errors, filepath);
+}
+/**
+ * Traverse the structure of a config file to track values for a specific key.
+ * @param config A BookConfig object or any nested structure.
+ * @param key The key to check for uniqueness.
+ * @param tracker The tracker object storing occurrences of values.
+ * @param filepath The path of the file being validated.
+ * @param currentPath The current path within the YAML structure.
+ */
+function traverseConfig(config, key, tracker, filepath, currentPath = '') {
+    if (isObject(config)) {
+        if (key in config) {
+            const fullPath = currentPath ? `${currentPath}.${key}` : key;
+            const value = config[key];
+            if (typeof value === 'string') {
+                trackValueWithinConfig(tracker, value, fullPath);
+            }
+        }
+        Object.entries(config).forEach(([nestedKey, value]) => {
+            if (isObject(value) || Array.isArray(value)) {
+                const newPath = currentPath ? `${currentPath}.${nestedKey}` : nestedKey;
+                traverseConfig(value, key, tracker, filepath, newPath);
+            }
+        });
+    }
+    else if (Array.isArray(config)) {
+        config.forEach((item, index) => {
+            if (isObject(item) || Array.isArray(item)) {
+                const newPath = `${currentPath}[${index}]`;
+                traverseConfig(item, key, tracker, filepath, newPath);
+            }
+        });
+    }
+}
+/**
+ * Track the unique values within a file.
+ * @param tracker The unique value tracker object.
+ * @param value The value to track.
+ * @param path The full path where the value is found.
+ */
+function trackValueWithinConfig(tracker, value, path) {
+    if (!value)
+        return;
+    if (!tracker[value]) {
+        tracker[value] = [];
+    }
+    tracker[value].push(path);
+}
+/**
+ * Check for uniqueness in tracked values and report errors if duplicates are found within a file.
+ * @param tracker The tracker object storing files for each value.
+ * @param key The key being tracked (e.g., 'shortName').
+ * @param errors The list of errors to append to if duplicates are found.
+ * @param filepath The path of the file being validated.
+ */
+function checkUniqueWithinConfig(tracker, key, errors, filepath) {
+    for (const value in tracker) {
+        const paths = tracker[value];
+        if (paths.length > 1) {
+            errors.push(new errors_1.DuplicateWithinFileError(filepath, key, value, paths));
+        }
+    }
+}
+/**
+ * Type guard to check if a value is a plain object (Record<string, unknown>).
+ * @param value The value to check.
+ * @returns True if the value is an object, false otherwise.
+ */
+function isObject(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 

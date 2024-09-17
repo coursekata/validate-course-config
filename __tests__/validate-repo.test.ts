@@ -79,3 +79,12 @@ it('requires that `sortOrder` be an integer', async () => {
     description: expect.stringMatching(/must be integer/)
   })
 })
+
+it('requires all `shortName` keys in a file to be unique', async () => {
+  const errors = await validateRepo([test_glob('repeated-shortName')])
+  expect(errors[0]).toMatchObject({
+    description: expect.stringMatching(
+      /Duplicate value '.+?' for key 'shortName' found/
+    )
+  })
+})
