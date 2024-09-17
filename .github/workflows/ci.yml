@@ -65,7 +65,10 @@ jobs:
         uses: ./
         continue-on-error: true
         with:
-          include: ./__tests__/fixtures/missing-name/*
+          include: |
+            ./__tests__/fixtures/missing-name/*
+            ./__tests__/fixtures/repeated-name/*
+            ./__tests__/fixtures/repeated-shortName/*
 
       # https://github.com/actions/github-script
       - name: Test that errors were found
