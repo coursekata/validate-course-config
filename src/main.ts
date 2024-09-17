@@ -22,20 +22,12 @@ function getInputs(): ActionInputs {
 }
 
 /**
- * Validate the inputs for the action.
- * @param inputs - The inputs for the action.
- * @throws Error if the inputs are invalid.
- */
-function validateInputs(inputs: ActionInputs): void {}
-
-/**
  * The main function for the action.
  * @returns Resolves when the action is complete.
  */
 export async function run(): Promise<void> {
   safelyExecute(async () => {
     const inputs = getInputs()
-    validateInputs(inputs)
 
     const errors = await validateRepo(
       inputs.include,
