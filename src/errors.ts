@@ -6,18 +6,32 @@ export interface IConfigError {
   description: string
   location: string
   suggestion: string
+
+  toMarkdown(): string
 }
 
-abstract class BaseConfigError implements IConfigError {
+export abstract class BaseConfigError implements IConfigError {
   description = ''
   location = ''
   suggestion = ''
+
+  /**
+   * Convert the error to a Markdown string.
+   * @returns The error as a Markdown string.
+   */
+  toMarkdown(): string {
+    return this._lines().join('  \n')
+  }
 
   /**
    * Convert the error to a string.
    * @returns The error as a string.
    */
   toString(): string {
+    return this._lines().join('\n')
+  }
+
+  private _lines(): string[] {
     const lines = [
       `Description: ${this.description}`,
       `Location: ${this.location}`
@@ -25,7 +39,7 @@ abstract class BaseConfigError implements IConfigError {
     if (this.suggestion) {
       lines.push(`Suggestion: ${this.suggestion}`)
     }
-    return relativizePaths(lines.join('\n'))
+    return lines.map(line => relativizePaths(line))
   }
 }
 

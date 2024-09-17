@@ -1,6 +1,13 @@
 import * as core from '@actions/core'
 import { validateRepo } from './validate-repo'
-import { IConfigError } from './errors'
+import {
+  DuplicateAcrossFilesError,
+  DuplicateWithinFileError,
+  IConfigError,
+  MissingConfigError,
+  ParseError,
+  ValidationError
+} from './errors'
 import { relativizePaths } from './utils'
 
 interface ActionInputs {
@@ -45,7 +52,8 @@ export async function run(): Promise<void> {
 
     core.setOutput('errors', relativizePaths(JSON.stringify(errors)))
     if (errors.length > 0) {
-      core.setFailed(formatErrors(errors))
+      await summarize(errors)
+      core.setFailed('Course config validation failed, see summary for details')
     }
   })
 }
@@ -67,16 +75,71 @@ async function safelyExecute(action: () => Promise<void>): Promise<void> {
   }
 }
 
-/**
- * Format the errors for output.
- * @param errors - The errors to format.
- * @returns The formatted errors.
- */
-function formatErrors(errors: IConfigError[]): string {
-  return relativizePaths(
-    [
-      'Some errors were found when validating the book configuration files',
-      ...errors
-    ].join('\n\n')
-  )
+async function summarize(errors: IConfigError[]): Promise<void> {
+  const missingConfig = errors.filter(e => e instanceof MissingConfigError)
+  if (missingConfig.length > 0) {
+    await core.summary
+      .addHeading('Course Config Validation')
+      .addRaw('No configuration files found')
+      .addCodeBlock(JSON.stringify(missingConfig, null, 2))
+      .write()
+
+    return
+  }
+
+  const summaries = [
+    ParseError,
+    ValidationError,
+    DuplicateWithinFileError,
+    DuplicateAcrossFilesError
+  ].map(errorType => ErrorSummary.fromErrors(errors, errorType))
+
+  const grandSummary = core.summary
+    .addHeading('Summary: Course Config Validation')
+    .addTable([
+      [
+        { data: 'Test', header: true },
+        { data: 'Status', header: true }
+      ],
+      ...summaries.map(s => s.row())
+    ])
+
+  summaries
+    .filter(s => !s.passing())
+    .forEach(s => grandSummary.addHeading(s.name, 2).addList(s.listItems()))
+
+  await grandSummary.write()
+}
+
+class ErrorSummary {
+  constructor(
+    readonly name: string,
+    private readonly errors: IConfigError[]
+  ) {}
+
+  passing(): boolean {
+    return this.errors.length === 0
+  }
+
+  status(): string {
+    return this.passing() ? 'Pass ✅' : 'Fail ❌'
+  }
+
+  row(): [string, string] {
+    return [this.name, this.status()]
+  }
+
+  listItems(): string[] {
+    return this.errors.map(e => e.toMarkdown())
+  }
+
+  static fromErrors(
+    errors: IConfigError[],
+    errorType: new (...args: any[]) => IConfigError // eslint-disable-line @typescript-eslint/no-explicit-any
+  ): ErrorSummary {
+    return new ErrorSummary(
+      errorType.name,
+      errors.filter(e => e instanceof errorType)
+    )
+  }
 }

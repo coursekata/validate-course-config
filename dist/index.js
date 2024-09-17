@@ -33267,17 +33267,27 @@ exports["default"] = _default;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DuplicateWithinFileError = exports.DuplicateAcrossFilesError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = void 0;
+exports.DuplicateWithinFileError = exports.DuplicateAcrossFilesError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = exports.BaseConfigError = void 0;
 const utils_1 = __nccwpck_require__(1314);
 class BaseConfigError {
     description = '';
     location = '';
     suggestion = '';
     /**
+     * Convert the error to a Markdown string.
+     * @returns The error as a Markdown string.
+     */
+    toMarkdown() {
+        return this._lines().join('  \n');
+    }
+    /**
      * Convert the error to a string.
      * @returns The error as a string.
      */
     toString() {
+        return this._lines().join('\n');
+    }
+    _lines() {
         const lines = [
             `Description: ${this.description}`,
             `Location: ${this.location}`
@@ -33285,9 +33295,10 @@ class BaseConfigError {
         if (this.suggestion) {
             lines.push(`Suggestion: ${this.suggestion}`);
         }
-        return (0, utils_1.relativizePaths)(lines.join('\n'));
+        return lines.map(line => (0, utils_1.relativizePaths)(line));
     }
 }
+exports.BaseConfigError = BaseConfigError;
 class ValidationError extends BaseConfigError {
     constructor(file, error) {
         super();
@@ -33392,6 +33403,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const validate_repo_1 = __nccwpck_require__(7244);
+const errors_1 = __nccwpck_require__(6976);
 const utils_1 = __nccwpck_require__(1314);
 /**
  * Get the inputs for the action.
@@ -33422,7 +33434,8 @@ async function run() {
         const errors = await (0, validate_repo_1.validateRepo)(inputs.include, inputs.followSymbolicLinks);
         core.setOutput('errors', (0, utils_1.relativizePaths)(JSON.stringify(errors)));
         if (errors.length > 0) {
-            core.setFailed(formatErrors(errors));
+            await summarize(errors);
+            core.setFailed('Course config validation failed, see summary for details');
         }
     });
 }
@@ -33444,16 +33457,59 @@ async function safelyExecute(action) {
         }
     }
 }
-/**
- * Format the errors for output.
- * @param errors - The errors to format.
- * @returns The formatted errors.
- */
-function formatErrors(errors) {
-    return (0, utils_1.relativizePaths)([
-        'Some errors were found when validating the book configuration files',
-        ...errors
-    ].join('\n\n'));
+async function summarize(errors) {
+    const missingConfig = errors.filter(e => e instanceof errors_1.MissingConfigError);
+    if (missingConfig.length > 0) {
+        await core.summary
+            .addHeading('Course Config Validation')
+            .addRaw('No configuration files found')
+            .addCodeBlock(JSON.stringify(missingConfig, null, 2))
+            .write();
+        return;
+    }
+    const summaries = [
+        errors_1.ParseError,
+        errors_1.ValidationError,
+        errors_1.DuplicateWithinFileError,
+        errors_1.DuplicateAcrossFilesError
+    ].map(errorType => ErrorSummary.fromErrors(errors, errorType));
+    const grandSummary = core.summary
+        .addHeading('Summary: Course Config Validation')
+        .addTable([
+        [
+            { data: 'Test', header: true },
+            { data: 'Status', header: true }
+        ],
+        ...summaries.map(s => s.row())
+    ]);
+    summaries
+        .filter(s => !s.passing())
+        .forEach(s => grandSummary.addHeading(s.name, 2).addList(s.listItems()));
+    await grandSummary.write();
+}
+class ErrorSummary {
+    name;
+    errors;
+    constructor(name, errors) {
+        this.name = name;
+        this.errors = errors;
+    }
+    passing() {
+        return this.errors.length === 0;
+    }
+    status() {
+        return this.passing() ? 'Pass ✅' : 'Fail ❌';
+    }
+    row() {
+        return [this.name, this.status()];
+    }
+    listItems() {
+        return this.errors.map(e => e.toMarkdown());
+    }
+    static fromErrors(errors, errorType // eslint-disable-line @typescript-eslint/no-explicit-any
+    ) {
+        return new ErrorSummary(errorType.name, errors.filter(e => e instanceof errorType));
+    }
 }
 
 
