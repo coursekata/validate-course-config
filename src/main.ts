@@ -130,7 +130,10 @@ class ErrorSummary {
   }
 
   listItems(): string[] {
-    return this.errors.map(e => e.toMarkdown())
+    return this.errors.map(e => {
+      const location = e.location ? `${e.location}: ` : ''
+      return `${location}${e.description}. ${e.suggestion}`
+    })
   }
 
   static fromErrors(

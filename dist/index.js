@@ -33274,20 +33274,10 @@ class BaseConfigError {
     location = '';
     suggestion = '';
     /**
-     * Convert the error to a Markdown string.
-     * @returns The error as a Markdown string.
-     */
-    toMarkdown() {
-        return this._lines().join('  \n');
-    }
-    /**
      * Convert the error to a string.
      * @returns The error as a string.
      */
     toString() {
-        return this._lines().join('\n');
-    }
-    _lines() {
         const lines = [
             `Description: ${this.description}`,
             `Location: ${this.location}`
@@ -33295,7 +33285,7 @@ class BaseConfigError {
         if (this.suggestion) {
             lines.push(`Suggestion: ${this.suggestion}`);
         }
-        return lines.map(line => (0, utils_1.relativizePaths)(line));
+        return (0, utils_1.relativizePaths)(lines.join('\n'));
     }
 }
 exports.BaseConfigError = BaseConfigError;
@@ -33504,7 +33494,10 @@ class ErrorSummary {
         return [this.name, this.status()];
     }
     listItems() {
-        return this.errors.map(e => e.toMarkdown());
+        return this.errors.map(e => {
+            const location = e.location ? `${e.location}: ` : '';
+            return `${location}${e.description}. ${e.suggestion}`;
+        });
     }
     static fromErrors(errors, errorType // eslint-disable-line @typescript-eslint/no-explicit-any
     ) {
