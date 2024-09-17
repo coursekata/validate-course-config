@@ -1,5 +1,6 @@
 import { ErrorObject } from 'ajv'
 import YAML from 'yaml'
+import { relativizePaths } from './utils'
 
 export interface IConfigError {
   description: string
@@ -24,16 +25,7 @@ abstract class BaseConfigError implements IConfigError {
     if (this.suggestion) {
       lines.push(`Suggestion: ${this.suggestion}`)
     }
-    return this.relativizePaths(lines.join('\n'))
-  }
-
-  /**
-   * Find and replace all instances of the current directory with "."
-   * @param output An output string to format.
-   */
-  relativizePaths(output: string): string {
-    const matcher = new RegExp(process.cwd(), 'g')
-    return output.replace(matcher, '.')
+    return relativizePaths(lines.join('\n'))
   }
 }
 

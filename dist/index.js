@@ -33262,12 +33262,13 @@ exports["default"] = _default;
 /***/ }),
 
 /***/ 6976:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DuplicateWithinFileError = exports.DuplicateAcrossFilesError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = void 0;
+const utils_1 = __nccwpck_require__(1314);
 class BaseConfigError {
     description = '';
     location = '';
@@ -33284,15 +33285,7 @@ class BaseConfigError {
         if (this.suggestion) {
             lines.push(`Suggestion: ${this.suggestion}`);
         }
-        return this.relativizePaths(lines.join('\n'));
-    }
-    /**
-     * Find and replace all instances of the current directory with "."
-     * @param output An output string to format.
-     */
-    relativizePaths(output) {
-        const matcher = new RegExp(process.cwd(), 'g');
-        return output.replace(matcher, '.');
+        return (0, utils_1.relativizePaths)(lines.join('\n'));
     }
 }
 class ValidationError extends BaseConfigError {
@@ -33399,16 +33392,25 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const validate_repo_1 = __nccwpck_require__(7244);
+const utils_1 = __nccwpck_require__(1314);
 /**
  * Get the inputs for the action.
  * @returns The inputs for the action.
  */
 function getInputs() {
-    const include = core.getMultilineInput('include');
-    const follow_symbolic_links = core.getBooleanInput('follow-symbolic-links');
+    let include;
+    let followSymbolicLinks;
+    if (process.env.GITHUB_ACTIONS) {
+        include = core.getMultilineInput('include');
+        followSymbolicLinks = core.getBooleanInput('follow-symbolic-links');
+    }
+    else {
+        include = ['.'];
+        followSymbolicLinks = false;
+    }
     core.debug(`include: ${include}`);
-    core.debug(`follow_symbolic_links: ${follow_symbolic_links}`);
-    return { include, follow_symbolic_links };
+    core.debug(`followSymbolicLinks: ${followSymbolicLinks}`);
+    return { include, followSymbolicLinks };
 }
 /**
  * The main function for the action.
@@ -33417,8 +33419,8 @@ function getInputs() {
 async function run() {
     safelyExecute(async () => {
         const inputs = getInputs();
-        const errors = await (0, validate_repo_1.validateRepo)(inputs.include, inputs.follow_symbolic_links);
-        core.setOutput('errors', errors);
+        const errors = await (0, validate_repo_1.validateRepo)(inputs.include, inputs.followSymbolicLinks);
+        core.setOutput('errors', (0, utils_1.relativizePaths)(JSON.stringify(errors)));
         if (errors.length > 0) {
             core.setFailed(formatErrors(errors));
         }
@@ -33448,10 +33450,10 @@ async function safelyExecute(action) {
  * @returns The formatted errors.
  */
 function formatErrors(errors) {
-    return [
+    return (0, utils_1.relativizePaths)([
         'Some errors were found when validating the book configuration files',
         ...errors
-    ].join('\n\n');
+    ].join('\n\n'));
 }
 
 
@@ -33606,6 +33608,25 @@ exports.bookSchema = {
 
 /***/ }),
 
+/***/ 1314:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.relativizePaths = relativizePaths;
+/**
+ * Find and replace all instances of the current directory with "."
+ * @param output An output string to format.
+ */
+function relativizePaths(output) {
+    const matcher = new RegExp(process.cwd(), 'g');
+    return output.replace(matcher, '.');
+}
+
+
+/***/ }),
+
 /***/ 7244:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -33647,8 +33668,10 @@ const path_1 = __importDefault(__nccwpck_require__(1017));
 const yaml_1 = __importDefault(__nccwpck_require__(4083));
 const errors_1 = __nccwpck_require__(6976);
 const schema_1 = __nccwpck_require__(2199);
+const utils_1 = __nccwpck_require__(1314);
 const ajv = new ajv_1.default({ allowUnionTypes: true });
 const validateConfig = ajv.compile(schema_1.bookSchema);
+const log = { debug: (message) => core.debug((0, utils_1.relativizePaths)(message)) };
 /**
  * Validate the repository configuration.
  * @param include The glob patterns to search for.
@@ -33681,17 +33704,16 @@ async function validateRepo(include, followSymbolicLinks = true) {
  * @returns The list of files found and the search paths.
  */
 async function globConfigs(include, followSymbolicLinks) {
-    core.debug(`Globbing for patterns: ${include.join(', ')}`);
+    log.debug(`Globbing for patterns: ${include.join(', ')}`);
     const globber = await glob.create(include.join('\n'), {
         followSymbolicLinks: followSymbolicLinks,
         matchDirectories: false
     });
     const globbedFiles = await globber.glob();
-    core.debug(`Globbed files: ${globbedFiles.join(', ')}`);
     const files = globbedFiles.filter(file => {
         return path_1.default.basename(file).endsWith('.book.yml');
     });
-    core.debug(`Filtered files: ${files.join(', ')}`);
+    log.debug(`Found config files: ${files.join(', ')}`);
     return { files, searchPaths: globber.getSearchPaths() };
 }
 /**
@@ -33701,7 +33723,7 @@ async function globConfigs(include, followSymbolicLinks) {
  * @returns The parsed BookConfig or undefined if there was a parse error.
  */
 function parseYAMLFile(file, errors) {
-    core.debug(`Parsing YAML file: '${file}'`);
+    log.debug(`Parsing YAML file: '${file}'`);
     const yaml = fs_1.default.readFileSync(file, 'utf-8');
     try {
         return yaml_1.default.parse(yaml);
@@ -33718,7 +33740,7 @@ function parseYAMLFile(file, errors) {
  * @param errors The list of errors to append to if validation fails.
  */
 function validateConfigSchema(file, config, errors) {
-    core.debug(`Validating schema for '${file}'`);
+    log.debug(`Validating schema for '${file}'`);
     validateConfig(config);
     validateConfig.errors?.forEach(error => {
         errors.push(new errors_1.ValidationError(file, error));

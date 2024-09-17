@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import { validateRepo } from './validate-repo'
 import { IConfigError } from './errors'
+import { relativizePaths } from './utils'
 
 interface ActionInputs {
   include: string[]
@@ -12,8 +13,16 @@ interface ActionInputs {
  * @returns The inputs for the action.
  */
 function getInputs(): ActionInputs {
-  const include = core.getMultilineInput('include')
-  const followSymbolicLinks = core.getBooleanInput('follow-symbolic-links')
+  let include: string[]
+  let followSymbolicLinks: boolean
+
+  if (process.env.GITHUB_ACTIONS) {
+    include = core.getMultilineInput('include')
+    followSymbolicLinks = core.getBooleanInput('follow-symbolic-links')
+  } else {
+    include = ['.']
+    followSymbolicLinks = false
+  }
 
   core.debug(`include: ${include}`)
   core.debug(`followSymbolicLinks: ${followSymbolicLinks}`)
@@ -34,7 +43,7 @@ export async function run(): Promise<void> {
       inputs.followSymbolicLinks
     )
 
-    core.setOutput('errors', errors)
+    core.setOutput('errors', relativizePaths(JSON.stringify(errors)))
     if (errors.length > 0) {
       core.setFailed(formatErrors(errors))
     }
@@ -64,8 +73,10 @@ async function safelyExecute(action: () => Promise<void>): Promise<void> {
  * @returns The formatted errors.
  */
 function formatErrors(errors: IConfigError[]): string {
-  return [
-    'Some errors were found when validating the book configuration files',
-    ...errors
-  ].join('\n\n')
+  return relativizePaths(
+    [
+      'Some errors were found when validating the book configuration files',
+      ...errors
+    ].join('\n\n')
+  )
 }

@@ -15,9 +15,11 @@ import {
 } from './errors'
 import { bookSchema } from './schema'
 import { BookConfig } from './models'
+import { relativizePaths } from './utils'
 
 const ajv = new Ajv({ allowUnionTypes: true })
 const validateConfig = ajv.compile(bookSchema)
+const log = { debug: (message: string) => core.debug(relativizePaths(message)) }
 
 /**
  * Validate the repository configuration.
@@ -61,7 +63,7 @@ async function globConfigs(
   include: string[],
   followSymbolicLinks: boolean
 ): Promise<{ files: string[]; searchPaths: string[] }> {
-  core.debug(`Globbing for patterns: ${include.join(', ')}`)
+  log.debug(`Globbing for patterns: ${include.join(', ')}`)
 
   const globber = await glob.create(include.join('\n'), {
     followSymbolicLinks: followSymbolicLinks,
@@ -69,13 +71,11 @@ async function globConfigs(
   })
 
   const globbedFiles = await globber.glob()
-  core.debug(`Globbed files: ${globbedFiles.join(', ')}`)
-
   const files = globbedFiles.filter(file => {
     return path.basename(file).endsWith('.book.yml')
   })
 
-  core.debug(`Filtered files: ${files.join(', ')}`)
+  log.debug(`Found config files: ${files.join(', ')}`)
   return { files, searchPaths: globber.getSearchPaths() }
 }
 
@@ -89,7 +89,7 @@ function parseYAMLFile(
   file: string,
   errors: IConfigError[]
 ): BookConfig | undefined {
-  core.debug(`Parsing YAML file: '${file}'`)
+  log.debug(`Parsing YAML file: '${file}'`)
   const yaml = fs.readFileSync(file, 'utf-8')
   try {
     return YAML.parse(yaml) as BookConfig
@@ -110,7 +110,7 @@ function validateConfigSchema(
   config: BookConfig,
   errors: IConfigError[]
 ): void {
-  core.debug(`Validating schema for '${file}'`)
+  log.debug(`Validating schema for '${file}'`)
   validateConfig(config)
   validateConfig.errors?.forEach(error => {
     errors.push(new ValidationError(file, error as ValidationErrorObject))
