@@ -1,7 +1,7 @@
 {
   "name": "@coursekata/validate-course-config",
   "description": "GitHub Action to validate CourseKata course configuration files.",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "author": "Adam Blake <adam@coursekata.org>",
   "private": true,
   "license": "MIT",
