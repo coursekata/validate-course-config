@@ -95,7 +95,7 @@ async function summarize(errors: IConfigError[]): Promise<void> {
   ].map(errorType => ErrorSummary.fromErrors(errors, errorType))
 
   const grandSummary = core.summary
-    .addHeading('Summary: Course Config Validation')
+    .addHeading('Course Config Validation Failed')
     .addTable([
       [
         { data: 'Test', header: true },

@@ -33464,7 +33464,7 @@ async function summarize(errors) {
         errors_1.DuplicateAcrossFilesError
     ].map(errorType => ErrorSummary.fromErrors(errors, errorType));
     const grandSummary = core.summary
-        .addHeading('Summary: Course Config Validation')
+        .addHeading('Course Config Validation Failed')
         .addTable([
         [
             { data: 'Test', header: true },
