@@ -33495,8 +33495,9 @@ class ErrorSummary {
     }
     listItems() {
         return this.errors.map(e => {
-            const location = e.location ? `${e.location}: ` : '';
-            return (0, utils_1.relativizePaths)(`${location}**${e.description}.** ${e.suggestion}`);
+            const location = e.location ? `<code>${e.location}</code>: ` : '';
+            const description = `<strong>${e.description}.</strong> ${e.suggestion}`;
+            return (0, utils_1.relativizePaths)(`${location}${description}`);
         });
     }
     static fromErrors(errors, errorType // eslint-disable-line @typescript-eslint/no-explicit-any

@@ -131,8 +131,9 @@ class ErrorSummary {
 
   listItems(): string[] {
     return this.errors.map(e => {
-      const location = e.location ? `${e.location}: ` : ''
-      return relativizePaths(`${location}**${e.description}.** ${e.suggestion}`)
+      const location = e.location ? `<code>${e.location}</code>: ` : ''
+      const description = `<strong>${e.description}.</strong> ${e.suggestion}`
+      return relativizePaths(`${location}${description}`)
     })
   }
 
