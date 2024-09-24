@@ -134,26 +134,24 @@ class ErrorSummary {
   listItems(): string[] {
     return this.errors.map(e => {
       if (e instanceof SingleLocationError) {
-        return this.formatSinglePageItem(e)
+        return this.formatItem(e.description, [e.location], e.suggestion)
       } else if (e instanceof MultiLocationError) {
-        return this.formatMultiPageItem(e)
+        return this.formatItem(e.description, e.location, e.suggestion)
       }
       throw new Error(`Unknown error type: ${e}`)
     })
   }
 
-  formatSinglePageItem(e: SingleLocationError): string {
-    const location = e.location ? `<code>${e.location}</code>: ` : ''
-    const description = `<strong>${e.description}.</strong> ${e.suggestion}`
-    return relativizePaths(`${location}${description}`)
-  }
-
-  formatMultiPageItem(e: MultiLocationError): string {
-    const description = `<strong>${e.description}.</strong> ${e.suggestion}`
-    const fileItems = e.location.map(f =>
+  formatItem(
+    description: string,
+    location: string[],
+    suggestion: string
+  ): string {
+    const summary = `<strong>${description}.</strong> ${suggestion}`
+    const locationList = location.map(f =>
       relativizePaths(`<li><code>${f}</code></li>`)
     )
-    return `${description}<ul>${fileItems.join('')}</ul>`
+    return `${summary}<ul>${locationList.join('')}</ul>`
   }
 
   static fromErrors(

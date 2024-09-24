@@ -33512,23 +33512,18 @@ class ErrorSummary {
     listItems() {
         return this.errors.map(e => {
             if (e instanceof errors_1.SingleLocationError) {
-                return this.formatSinglePageItem(e);
+                return this.formatItem(e.description, [e.location], e.suggestion);
             }
             else if (e instanceof errors_1.MultiLocationError) {
-                return this.formatMultiPageItem(e);
+                return this.formatItem(e.description, e.location, e.suggestion);
             }
             throw new Error(`Unknown error type: ${e}`);
         });
     }
-    formatSinglePageItem(e) {
-        const location = e.location ? `<code>${e.location}</code>: ` : '';
-        const description = `<strong>${e.description}.</strong> ${e.suggestion}`;
-        return (0, utils_1.relativizePaths)(`${location}${description}`);
-    }
-    formatMultiPageItem(e) {
-        const description = `<strong>${e.description}.</strong> ${e.suggestion}`;
-        const fileItems = e.location.map(f => (0, utils_1.relativizePaths)(`<li><code>${f}</code></li>`));
-        return `${description}<ul>${fileItems.join('')}</ul>`;
+    formatItem(description, location, suggestion) {
+        const summary = `<strong>${description}.</strong> ${suggestion}`;
+        const locationList = location.map(f => (0, utils_1.relativizePaths)(`<li><code>${f}</code></li>`));
+        return `${summary}<ul>${locationList.join('')}</ul>`;
     }
     static fromErrors(errors, errorType // eslint-disable-line @typescript-eslint/no-explicit-any
     ) {
