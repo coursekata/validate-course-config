@@ -8,13 +8,13 @@ export interface IConfigError {
   suggestion: string
 }
 
-export abstract class SingleFileError implements IConfigError {
+export abstract class SingleLocationError implements IConfigError {
   description = ''
   location = ''
   suggestion = ''
 
   toString(): string {
-    return SingleFileError.format(
+    return SingleLocationError.format(
       this.description,
       this.location,
       this.suggestion
@@ -38,7 +38,7 @@ export abstract class SingleFileError implements IConfigError {
   }
 }
 
-export abstract class MultiFileError implements IConfigError {
+export abstract class MultiLocationError implements IConfigError {
   description = ''
   location: string[] = []
   suggestion = ''
@@ -51,11 +51,15 @@ export abstract class MultiFileError implements IConfigError {
     const location = Array.isArray(this.location)
       ? this.location.join(', ')
       : this.location
-    return SingleFileError.format(this.description, location, this.suggestion)
+    return SingleLocationError.format(
+      this.description,
+      location,
+      this.suggestion
+    )
   }
 }
 
-export class ValidationError extends SingleFileError {
+export class ValidationError extends SingleLocationError {
   constructor(file: string, error: ValidationErrorObject) {
     super()
 
@@ -96,7 +100,7 @@ function isTypeParams(params: ErrorParams): params is TypeParams {
   )
 }
 
-export class ParseError extends SingleFileError {
+export class ParseError extends SingleLocationError {
   constructor(file: string, err: YAML.YAMLParseError) {
     super()
     this.description = err.message
@@ -112,17 +116,17 @@ export class ParseError extends SingleFileError {
   }
 }
 
-export class MissingConfigError extends SingleFileError {
+export class MissingConfigError extends MultiLocationError {
   constructor(searchPaths: string[]) {
     super()
-    this.description = `No config files found. Searched paths: ${searchPaths.join(', ')}`
-    this.location = ''
+    this.description = `No config files found for these search paths.`
+    this.location = searchPaths
     this.suggestion =
       'Add at least one valid book configuration file with the `.book.yml` extension.'
   }
 }
 
-export class DuplicateAcrossFilesError extends MultiFileError {
+export class DuplicateAcrossFilesError extends MultiLocationError {
   constructor(files: string[], key: string, value: string | number) {
     super()
     this.description = `Some books have the same value for '${key}': '${value}'`
@@ -131,11 +135,11 @@ export class DuplicateAcrossFilesError extends MultiFileError {
   }
 }
 
-export class DuplicateWithinFileError extends SingleFileError {
+export class DuplicateWithinFileError extends MultiLocationError {
   constructor(file: string, key: string, value: string, paths: string[]) {
     super()
-    this.description = `Duplicate value '${value}' for key '${key}' found: ${paths.join(', ')}`
-    this.location = file
+    this.description = `Duplicate value '${value}' for key '${key}' found in the same file`
+    this.location = paths.map(p => `${file}:${p}`)
     this.suggestion = `Ensure that '${key}' has unique values at each location.`
   }
 }

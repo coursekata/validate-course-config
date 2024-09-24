@@ -33267,14 +33267,14 @@ exports["default"] = _default;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DuplicateWithinFileError = exports.DuplicateAcrossFilesError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = exports.MultiFileError = exports.SingleFileError = void 0;
+exports.DuplicateWithinFileError = exports.DuplicateAcrossFilesError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = exports.MultiLocationError = exports.SingleLocationError = void 0;
 const utils_1 = __nccwpck_require__(1798);
-class SingleFileError {
+class SingleLocationError {
     description = '';
     location = '';
     suggestion = '';
     toString() {
-        return SingleFileError.format(this.description, this.location, this.suggestion);
+        return SingleLocationError.format(this.description, this.location, this.suggestion);
     }
     /**
      * Convert the error to a string.
@@ -33288,8 +33288,8 @@ class SingleFileError {
         return (0, utils_1.relativizePaths)(lines.join('\n'));
     }
 }
-exports.SingleFileError = SingleFileError;
-class MultiFileError {
+exports.SingleLocationError = SingleLocationError;
+class MultiLocationError {
     description = '';
     location = [];
     suggestion = '';
@@ -33301,11 +33301,11 @@ class MultiFileError {
         const location = Array.isArray(this.location)
             ? this.location.join(', ')
             : this.location;
-        return SingleFileError.format(this.description, location, this.suggestion);
+        return SingleLocationError.format(this.description, location, this.suggestion);
     }
 }
-exports.MultiFileError = MultiFileError;
-class ValidationError extends SingleFileError {
+exports.MultiLocationError = MultiLocationError;
+class ValidationError extends SingleLocationError {
     constructor(file, error) {
         super();
         if (isRequiredParams(error.params)) {
@@ -33330,7 +33330,7 @@ function isTypeParams(params) {
     return (params.instancePath !== undefined &&
         params.message !== undefined);
 }
-class ParseError extends SingleFileError {
+class ParseError extends SingleLocationError {
     constructor(file, err) {
         super();
         this.description = err.message;
@@ -33345,17 +33345,17 @@ class ParseError extends SingleFileError {
     }
 }
 exports.ParseError = ParseError;
-class MissingConfigError extends SingleFileError {
+class MissingConfigError extends MultiLocationError {
     constructor(searchPaths) {
         super();
-        this.description = `No config files found. Searched paths: ${searchPaths.join(', ')}`;
-        this.location = '';
+        this.description = `No config files found for these search paths.`;
+        this.location = searchPaths;
         this.suggestion =
             'Add at least one valid book configuration file with the `.book.yml` extension.';
     }
 }
 exports.MissingConfigError = MissingConfigError;
-class DuplicateAcrossFilesError extends MultiFileError {
+class DuplicateAcrossFilesError extends MultiLocationError {
     constructor(files, key, value) {
         super();
         this.description = `Some books have the same value for '${key}': '${value}'`;
@@ -33364,11 +33364,11 @@ class DuplicateAcrossFilesError extends MultiFileError {
     }
 }
 exports.DuplicateAcrossFilesError = DuplicateAcrossFilesError;
-class DuplicateWithinFileError extends SingleFileError {
+class DuplicateWithinFileError extends MultiLocationError {
     constructor(file, key, value, paths) {
         super();
-        this.description = `Duplicate value '${value}' for key '${key}' found: ${paths.join(', ')}`;
-        this.location = file;
+        this.description = `Duplicate value '${value}' for key '${key}' found in the same file`;
+        this.location = paths.map(p => `${file}:${p}`);
         this.suggestion = `Ensure that '${key}' has unique values at each location.`;
     }
 }
@@ -33511,10 +33511,10 @@ class ErrorSummary {
     }
     listItems() {
         return this.errors.map(e => {
-            if (e instanceof errors_1.SingleFileError) {
+            if (e instanceof errors_1.SingleLocationError) {
                 return this.formatSinglePageItem(e);
             }
-            else if (e instanceof errors_1.MultiFileError) {
+            else if (e instanceof errors_1.MultiLocationError) {
                 return this.formatMultiPageItem(e);
             }
             throw new Error(`Unknown error type: ${e}`);
