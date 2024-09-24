@@ -5,7 +5,9 @@ import {
   DuplicateWithinFileError,
   IConfigError,
   MissingConfigError,
+  MultiFileError,
   ParseError,
+  SingleFileError,
   ValidationError
 } from './errors'
 import { relativizePaths } from './utils'
@@ -131,10 +133,27 @@ class ErrorSummary {
 
   listItems(): string[] {
     return this.errors.map(e => {
-      const location = e.location ? `<code>${e.location}</code>: ` : ''
-      const description = `<strong>${e.description}.</strong> ${e.suggestion}`
-      return relativizePaths(`${location}${description}`)
+      if (e instanceof SingleFileError) {
+        return this.formatSinglePageItem(e)
+      } else if (e instanceof MultiFileError) {
+        return this.formatMultiPageItem(e)
+      }
+      throw new Error(`Unknown error type: ${e}`)
     })
+  }
+
+  formatSinglePageItem(e: SingleFileError): string {
+    const location = e.location ? `<code>${e.location}</code>: ` : ''
+    const description = `<strong>${e.description}.</strong> ${e.suggestion}`
+    return relativizePaths(`${location}${description}`)
+  }
+
+  formatMultiPageItem(e: MultiFileError): string {
+    const description = `<strong>${e.description}.</strong> ${e.suggestion}`
+    const fileItems = e.location.map(f =>
+      relativizePaths(`<li><code>${f}</code></li>`)
+    )
+    return `${description}<ul>${fileItems.join('')}</ul>`
   }
 
   static fromErrors(
