@@ -4,32 +4,62 @@ import { relativizePaths } from './utils'
 
 export interface IConfigError {
   description: string
-  location: string
+  location: string | string[]
   suggestion: string
 }
 
-export abstract class BaseConfigError implements IConfigError {
+export abstract class SingleLocationError implements IConfigError {
   description = ''
   location = ''
+  suggestion = ''
+
+  toString(): string {
+    return SingleLocationError.format(
+      this.description,
+      this.location,
+      this.suggestion
+    )
+  }
+
+  /**
+   * Convert the error to a string.
+   * @returns The error as a string.
+   */
+  static format(
+    description: string,
+    location: string,
+    suggestion: string
+  ): string {
+    const lines = [`Description: ${description}`, `Location: ${location}`]
+    if (suggestion) {
+      lines.push(`Suggestion: ${suggestion}`)
+    }
+    return relativizePaths(lines.join('\n'))
+  }
+}
+
+export abstract class MultiLocationError implements IConfigError {
+  description = ''
+  location: string[] = []
   suggestion = ''
 
   /**
    * Convert the error to a string.
    * @returns The error as a string.
    */
-  toString(): string {
-    const lines = [
-      `Description: ${this.description}`,
-      `Location: ${this.location}`
-    ]
-    if (this.suggestion) {
-      lines.push(`Suggestion: ${this.suggestion}`)
-    }
-    return relativizePaths(lines.join('\n'))
+  format(): string {
+    const location = Array.isArray(this.location)
+      ? this.location.join(', ')
+      : this.location
+    return SingleLocationError.format(
+      this.description,
+      location,
+      this.suggestion
+    )
   }
 }
 
-export class ValidationError extends BaseConfigError {
+export class ValidationError extends SingleLocationError {
   constructor(file: string, error: ValidationErrorObject) {
     super()
 
@@ -70,7 +100,7 @@ function isTypeParams(params: ErrorParams): params is TypeParams {
   )
 }
 
-export class ParseError extends BaseConfigError {
+export class ParseError extends SingleLocationError {
   constructor(file: string, err: YAML.YAMLParseError) {
     super()
     this.description = err.message
@@ -86,30 +116,30 @@ export class ParseError extends BaseConfigError {
   }
 }
 
-export class MissingConfigError extends BaseConfigError {
+export class MissingConfigError extends MultiLocationError {
   constructor(searchPaths: string[]) {
     super()
-    this.description = `No config files found. Searched paths: ${searchPaths.join(', ')}`
-    this.location = ''
+    this.description = `No config files found for these search paths.`
+    this.location = searchPaths
     this.suggestion =
       'Add at least one valid book configuration file with the `.book.yml` extension.'
   }
 }
 
-export class DuplicateAcrossFilesError extends BaseConfigError {
+export class DuplicateAcrossFilesError extends MultiLocationError {
   constructor(files: string[], key: string, value: string | number) {
     super()
-    this.description = `Some books have the same value for '${key}' ('${value}'): ${files.join(', ')}`
-    this.location = ''
+    this.description = `Some books have the same value for '${key}': '${value}'`
+    this.location = files
     this.suggestion = `Ensure all books have unique values for '${key}'.`
   }
 }
 
-export class DuplicateWithinFileError extends BaseConfigError {
+export class DuplicateWithinFileError extends MultiLocationError {
   constructor(file: string, key: string, value: string, paths: string[]) {
     super()
-    this.description = `Duplicate value '${value}' for key '${key}' found: ${paths.join(', ')}`
-    this.location = file
+    this.description = `Duplicate value '${value}' for key '${key}' found in the same file`
+    this.location = paths.map(p => `${file}:${p}`)
     this.suggestion = `Ensure that '${key}' has unique values at each location.`
   }
 }

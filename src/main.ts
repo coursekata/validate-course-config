@@ -5,7 +5,9 @@ import {
   DuplicateWithinFileError,
   IConfigError,
   MissingConfigError,
+  MultiLocationError,
   ParseError,
+  SingleLocationError,
   ValidationError
 } from './errors'
 import { relativizePaths } from './utils'
@@ -131,10 +133,25 @@ class ErrorSummary {
 
   listItems(): string[] {
     return this.errors.map(e => {
-      const location = e.location ? `<code>${e.location}</code>: ` : ''
-      const description = `<strong>${e.description}.</strong> ${e.suggestion}`
-      return relativizePaths(`${location}${description}`)
+      if (e instanceof SingleLocationError) {
+        return this.formatItem(e.description, [e.location], e.suggestion)
+      } else if (e instanceof MultiLocationError) {
+        return this.formatItem(e.description, e.location, e.suggestion)
+      }
+      throw new Error(`Unknown error type: ${e}`)
     })
+  }
+
+  formatItem(
+    description: string,
+    location: string[],
+    suggestion: string
+  ): string {
+    const summary = `<strong>${description}.</strong> ${suggestion}`
+    const locationList = location.map(f =>
+      relativizePaths(`<li><code>${f}</code></li>`)
+    )
+    return `${summary}<ul>${locationList.join('')}</ul>`
   }
 
   static fromErrors(

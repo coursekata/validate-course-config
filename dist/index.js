@@ -33267,29 +33267,45 @@ exports["default"] = _default;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DuplicateWithinFileError = exports.DuplicateAcrossFilesError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = exports.BaseConfigError = void 0;
+exports.DuplicateWithinFileError = exports.DuplicateAcrossFilesError = exports.MissingConfigError = exports.ParseError = exports.ValidationError = exports.MultiLocationError = exports.SingleLocationError = void 0;
 const utils_1 = __nccwpck_require__(1798);
-class BaseConfigError {
+class SingleLocationError {
     description = '';
     location = '';
+    suggestion = '';
+    toString() {
+        return SingleLocationError.format(this.description, this.location, this.suggestion);
+    }
+    /**
+     * Convert the error to a string.
+     * @returns The error as a string.
+     */
+    static format(description, location, suggestion) {
+        const lines = [`Description: ${description}`, `Location: ${location}`];
+        if (suggestion) {
+            lines.push(`Suggestion: ${suggestion}`);
+        }
+        return (0, utils_1.relativizePaths)(lines.join('\n'));
+    }
+}
+exports.SingleLocationError = SingleLocationError;
+class MultiLocationError {
+    description = '';
+    location = [];
     suggestion = '';
     /**
      * Convert the error to a string.
      * @returns The error as a string.
      */
-    toString() {
-        const lines = [
-            `Description: ${this.description}`,
-            `Location: ${this.location}`
-        ];
-        if (this.suggestion) {
-            lines.push(`Suggestion: ${this.suggestion}`);
-        }
-        return (0, utils_1.relativizePaths)(lines.join('\n'));
+    format() {
+        const location = Array.isArray(this.location)
+            ? this.location.join(', ')
+            : this.location;
+        return SingleLocationError.format(this.description, location, this.suggestion);
     }
 }
-exports.BaseConfigError = BaseConfigError;
-class ValidationError extends BaseConfigError {
+exports.MultiLocationError = MultiLocationError;
+class ValidationError extends SingleLocationError {
     constructor(file, error) {
         super();
         if (isRequiredParams(error.params)) {
@@ -33314,7 +33330,7 @@ function isTypeParams(params) {
     return (params.instancePath !== undefined &&
         params.message !== undefined);
 }
-class ParseError extends BaseConfigError {
+class ParseError extends SingleLocationError {
     constructor(file, err) {
         super();
         this.description = err.message;
@@ -33329,30 +33345,30 @@ class ParseError extends BaseConfigError {
     }
 }
 exports.ParseError = ParseError;
-class MissingConfigError extends BaseConfigError {
+class MissingConfigError extends MultiLocationError {
     constructor(searchPaths) {
         super();
-        this.description = `No config files found. Searched paths: ${searchPaths.join(', ')}`;
-        this.location = '';
+        this.description = `No config files found for these search paths.`;
+        this.location = searchPaths;
         this.suggestion =
             'Add at least one valid book configuration file with the `.book.yml` extension.';
     }
 }
 exports.MissingConfigError = MissingConfigError;
-class DuplicateAcrossFilesError extends BaseConfigError {
+class DuplicateAcrossFilesError extends MultiLocationError {
     constructor(files, key, value) {
         super();
-        this.description = `Some books have the same value for '${key}' ('${value}'): ${files.join(', ')}`;
-        this.location = '';
+        this.description = `Some books have the same value for '${key}': '${value}'`;
+        this.location = files;
         this.suggestion = `Ensure all books have unique values for '${key}'.`;
     }
 }
 exports.DuplicateAcrossFilesError = DuplicateAcrossFilesError;
-class DuplicateWithinFileError extends BaseConfigError {
+class DuplicateWithinFileError extends MultiLocationError {
     constructor(file, key, value, paths) {
         super();
-        this.description = `Duplicate value '${value}' for key '${key}' found: ${paths.join(', ')}`;
-        this.location = file;
+        this.description = `Duplicate value '${value}' for key '${key}' found in the same file`;
+        this.location = paths.map(p => `${file}:${p}`);
         this.suggestion = `Ensure that '${key}' has unique values at each location.`;
     }
 }
@@ -33495,10 +33511,19 @@ class ErrorSummary {
     }
     listItems() {
         return this.errors.map(e => {
-            const location = e.location ? `<code>${e.location}</code>: ` : '';
-            const description = `<strong>${e.description}.</strong> ${e.suggestion}`;
-            return (0, utils_1.relativizePaths)(`${location}${description}`);
+            if (e instanceof errors_1.SingleLocationError) {
+                return this.formatItem(e.description, [e.location], e.suggestion);
+            }
+            else if (e instanceof errors_1.MultiLocationError) {
+                return this.formatItem(e.description, e.location, e.suggestion);
+            }
+            throw new Error(`Unknown error type: ${e}`);
         });
+    }
+    formatItem(description, location, suggestion) {
+        const summary = `<strong>${description}.</strong> ${suggestion}`;
+        const locationList = location.map(f => (0, utils_1.relativizePaths)(`<li><code>${f}</code></li>`));
+        return `${summary}<ul>${locationList.join('')}</ul>`;
     }
     static fromErrors(errors, errorType // eslint-disable-line @typescript-eslint/no-explicit-any
     ) {
